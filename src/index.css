@@ -177,25 +177,4 @@
     font-family: var(--font-serif);
     @apply italic;
   }
-
-  .highlighted-text {
-    background: linear-gradient(135deg, hsl(var(--burgundy)) 0%, hsl(var(--gold)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Marquee Animation */
-  .marquee-track {
-    animation: marquee 30s linear infinite;
-  }
-
-  @keyframes marquee {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
 }

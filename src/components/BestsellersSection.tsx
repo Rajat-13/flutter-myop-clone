@@ -62,28 +62,13 @@ const BestsellersSection = () => {
     <section id="bestsellers" className="section-padding bg-background">
       <div className="container-wide">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 lg:gap-8 mb-12">
-          <div>
-            <h2 className="heading-section font-bold">
-              Discover <em className="highlighted-text not-italic">Our Bestsellers</em>
-            </h2>
-          </div>
-          <div className="hidden lg:flex gap-2">
-            <button
-              onClick={() => scroll("left")}
-              className="w-12 h-12 flex items-center justify-center border border-foreground rounded-full hover:bg-foreground hover:text-background transition-all duration-300"
-              aria-label="Previous"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={() => scroll("right")}
-              className="w-12 h-12 flex items-center justify-center border border-foreground rounded-full hover:bg-foreground hover:text-background transition-all duration-300"
-              aria-label="Next"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+        <div className="text-center mb-12">
+          <h2 className="heading-section">
+            Discover <span className="italic-accent">Our Bestsellers</span>
+          </h2>
+          <p className="text-body text-muted-foreground mt-4 max-w-xl mx-auto">
+            Explore our most loved fragrances, crafted with the finest ingredients
+          </p>
         </div>
 
         {/* Carousel */}
@@ -98,6 +83,21 @@ const BestsellersSection = () => {
             ))}
           </div>
 
+          {/* Navigation Buttons */}
+          <button
+            onClick={() => scroll("left")}
+            className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center bg-background shadow-elevated rounded-full hover:bg-muted transition-colors"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            onClick={() => scroll("right")}
+            className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center bg-background shadow-elevated rounded-full hover:bg-muted transition-colors"
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={24} />
+          </button>
         </div>
 
         {/* Special Offer */}
