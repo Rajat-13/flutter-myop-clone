@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import heroIntense from "@/assets/hero-intense.png";
+import heroFlora from "@/assets/hero-flora.png";
 
 interface Slide {
   id: number;
@@ -9,15 +11,11 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=1600&auto=format&fit=crop&q=80",
+    image: heroIntense,
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=1600&auto=format&fit=crop&q=80",
-  },
-  {
-    id: 3,
-    image: "https://images.unsplash.com/photo-1594035900144-17fc72a68908?w=1600&auto=format&fit=crop&q=80",
+    image: heroFlora,
   },
 ];
 
