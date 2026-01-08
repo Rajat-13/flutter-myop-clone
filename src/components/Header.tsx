@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Menu, X, ShoppingBag, User, Search } from "lucide-react";
+import LoginDialog from "./LoginDialog";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const navLinks = [
     { name: "Bestsellers", href: "#bestsellers" },
     { name: "Shop All", href: "#shop" },
@@ -51,7 +52,11 @@ const Header = () => {
             <button className="p-2 hover:text-primary transition-colors" aria-label="Search">
               <Search size={20} />
             </button>
-            <button className="p-2 hover:text-primary transition-colors" aria-label="Account">
+            <button 
+              className="p-2 hover:text-primary transition-colors" 
+              aria-label="Account"
+              onClick={() => setIsLoginOpen(true)}
+            >
               <User size={20} />
             </button>
             <button className="p-2 hover:text-primary transition-colors relative" aria-label="Cart">
@@ -80,6 +85,9 @@ const Header = () => {
           </nav>
         )}
       </div>
+
+      {/* Login Dialog */}
+      <LoginDialog open={isLoginOpen} onOpenChange={setIsLoginOpen} />
     </header>
   );
 };
