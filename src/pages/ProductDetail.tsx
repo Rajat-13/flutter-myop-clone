@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Minus, Plus, Heart, Share2, Truck, RotateCcw, Shield } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus, Share2, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MarqueeBanner from "@/components/MarqueeBanner";
+import intensityImg from "@/assets/intensity-reference.webp";
+import personalityImg from "@/assets/personality-reference.webp";
 
 // Sample product data - in real app this would come from API
 const products: Record<string, {
@@ -18,16 +20,17 @@ const products: Record<string, {
   gender: "for-him" | "for-her" | "unisex";
   occasion: string;
   concentration: { sillage: number; projection: number; longevity: number };
+  viewersCount: number;
 }> = {
   "sandal-veer": {
     name: "Sandal Veer",
     price: 1129,
     originalPrice: 1499,
-    description: "A bold and sophisticated fragrance that captures the essence of timeless elegance. Sandal Veer opens with warm sandalwood notes, complemented by subtle hints of musk and amber.",
+    description: "A bold and sophisticated fragrance that captures the essence of timeless elegance.",
     notes: {
-      top: ["Bergamot", "Pink Pepper"],
-      middle: ["Sandalwood", "Oud"],
-      base: ["Musk", "Amber", "Vanilla"]
+      top: ["Grapefruit", "Cardamom", "Pepper"],
+      middle: ["Orris", "Sandalwood", "Cinnamon"],
+      base: ["Musk", "Dry Amber", "Akigalawood"]
     },
     images: [
       "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=800&auto=format&fit=crop&q=80",
@@ -40,18 +43,19 @@ const products: Record<string, {
       { ml: 100, price: 2799, label: "100ml Personalized" },
     ],
     tag: "Bestseller",
-    gender: "unisex",
+    gender: "for-him",
     occasion: "All Day",
-    concentration: { sillage: 85, projection: 75, longevity: 90 }
+    concentration: { sillage: 85, projection: 75, longevity: 90 },
+    viewersCount: 15
   },
   "flora-bliss": {
     name: "Flora Bliss",
     price: 899,
-    description: "A delicate floral symphony that evokes blooming gardens at dawn. Fresh, feminine, and utterly captivating.",
+    description: "A delicate floral symphony that evokes blooming gardens at dawn.",
     notes: {
-      top: ["Rose", "Jasmine"],
-      middle: ["Peony", "Lily"],
-      base: ["White Musk", "Cedarwood"]
+      top: ["Rose", "Jasmine", "Bergamot"],
+      middle: ["Peony", "Lily", "Violet"],
+      base: ["White Musk", "Cedarwood", "Vanilla"]
     },
     images: [
       "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=800&auto=format&fit=crop&q=80",
@@ -64,7 +68,8 @@ const products: Record<string, {
     ],
     gender: "for-her",
     occasion: "Evening",
-    concentration: { sillage: 70, projection: 80, longevity: 85 }
+    concentration: { sillage: 70, projection: 80, longevity: 85 },
+    viewersCount: 12
   }
 };
 
@@ -73,8 +78,17 @@ const ProductDetail = () => {
   const product = products[slug || "sandal-veer"] || products["sandal-veer"];
   
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(product.sizes[1]);
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
+  const [expandedSections, setExpandedSections] = useState({
+    intensity: true,
+    notes: false,
+    personality: false,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
@@ -89,61 +103,68 @@ const ProductDetail = () => {
       <MarqueeBanner />
       <Header />
       
-      <main className="pt-8 pb-16">
+      <main className="pt-4 pb-16">
         <div className="container-wide">
           {/* Breadcrumb */}
-          <nav className="mb-8">
-            <ol className="flex items-center gap-2 text-sm text-muted-foreground">
-              <li><Link to="/" className="hover:text-foreground transition-colors">Home</Link></li>
-              <li>/</li>
-              <li><Link to="/#bestsellers" className="hover:text-foreground transition-colors">Perfumes</Link></li>
-              <li>/</li>
-              <li className="text-foreground">{product.name}</li>
+          <nav className="mb-4 px-4">
+            <ol className="flex items-center gap-2 text-xs text-muted-foreground">
+              <li><Link to="/" className="hover:text-foreground transition-colors">Collections</Link></li>
+              <li className="text-muted-foreground">&gt;</li>
+              <li><Link to="/#bestsellers" className="hover:text-foreground transition-colors">Best Sellers</Link></li>
             </ol>
           </nav>
 
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Image Gallery */}
-            <div className="space-y-4">
-              <div className="relative aspect-square overflow-hidden bg-muted rounded-sm">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Image Gallery - Left Side */}
+            <div className="space-y-3 px-4 lg:px-0">
+              {/* Main Image */}
+              <div className="relative aspect-square overflow-hidden bg-cream">
                 <img
                   src={product.images[currentImageIndex]}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
-                {product.tag && (
-                  <span className="absolute top-4 left-4 bg-primary text-primary-foreground text-xs uppercase tracking-wider px-3 py-1.5">
-                    {product.tag}
-                  </span>
-                )}
                 
                 {/* Navigation Arrows */}
                 {product.images.length > 1 && (
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors shadow-sm"
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors shadow-sm"
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </>
                 )}
+
+                {/* Image Counter */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {product.images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex ? "bg-charcoal" : "bg-charcoal/30"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Thumbnails */}
-              <div className="flex gap-3">
+              <div className="flex gap-2 overflow-x-auto pb-2">
                 {product.images.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-20 h-20 overflow-hidden rounded-sm border-2 transition-colors ${
-                      index === currentImageIndex ? "border-primary" : "border-transparent"
+                    className={`flex-shrink-0 w-16 h-16 overflow-hidden border-2 transition-colors ${
+                      index === currentImageIndex ? "border-charcoal" : "border-transparent"
                     }`}
                   >
                     <img src={img} alt="" className="w-full h-full object-cover" />
@@ -152,211 +173,211 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Product Info */}
-            <div className="space-y-6">
-              <div>
-                <h1 className="font-serif text-3xl md:text-4xl font-bold mb-3">{product.name}</h1>
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-semibold">₹{selectedSize.price}</span>
-                  {product.originalPrice && (
-                    <span className="text-lg text-muted-foreground line-through">
-                      ₹{Math.round(selectedSize.price * (product.originalPrice / product.price))}
-                    </span>
-                  )}
-                </div>
+            {/* Product Info - Right Side */}
+            <div className="px-4 lg:px-0 lg:pr-8">
+              {/* Product Title */}
+              <h1 className="font-serif text-2xl md:text-3xl font-semibold text-charcoal mb-3">
+                {product.name}
+              </h1>
+
+              {/* Price */}
+              <div className="flex items-baseline gap-3 mb-2">
+                <span className="text-xl font-medium text-charcoal">Rs. {selectedSize.price.toLocaleString()}.00</span>
               </div>
 
-              <p className="text-muted-foreground leading-relaxed">
-                {product.description}
-              </p>
-
-              {/* Personality Section - Gender & Occasion */}
-              <div className="grid grid-cols-2 gap-4 py-4">
-                <div className="relative border-2 border-charcoal rounded-lg p-4">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-gold" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="5" r="3"/>
-                      <path d="M12 8v8M8 12h8M12 16v4"/>
-                      <path d="M9 20h6"/>
-                    </svg>
-                    <span className="font-bold text-lg capitalize">
-                      {product.gender === "unisex" ? "Unisex" : product.gender === "for-him" ? "For Him" : "For Her"}
-                    </span>
-                  </div>
-                </div>
-                <div className="relative border-2 border-charcoal rounded-lg p-4">
-                  <div className="flex items-center gap-2 justify-end">
-                    <span className="font-bold text-lg">{product.occasion}</span>
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="4"/>
-                      <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
-                      <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-                    </svg>
-                  </div>
-                </div>
+              {/* EMI Info */}
+              <div className="text-sm text-muted-foreground mb-2">
+                or Pay ₹{Math.round(selectedSize.price / 3)} now & rest later at{" "}
+                <span className="text-charcoal font-medium cursor-pointer hover:underline">BUY ON EMI</span>
+              </div>
+              <div className="text-sm text-muted-foreground mb-4">
+                0% EMI on via <span className="font-medium">snapmint</span>
               </div>
 
-              {/* Concentration Levels */}
-              <div className="space-y-4 py-4 border-y border-border">
-                <h3 className="font-medium uppercase tracking-wider text-sm">Concentration Levels</h3>
-                
-                {/* Sillage */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-charcoal text-primary-foreground px-4 py-2 rounded-full font-bold">
-                        Sillage
-                      </div>
-                      <span className="text-muted-foreground text-sm">the trail your perfume leaves behind</span>
-                    </div>
-                    <svg className="w-5 h-5 text-gold" viewBox="0 0 24 24" fill="currentColor">
-                      <ellipse cx="9" cy="18" rx="2" ry="3"/>
-                      <ellipse cx="15" cy="18" rx="2" ry="3"/>
-                    </svg>
-                  </div>
-                  <div className="h-3 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-charcoal rounded-full transition-all duration-500"
-                      style={{ width: `${product.concentration.sillage}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Projection */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-charcoal text-primary-foreground px-4 py-2 rounded-full font-bold">
-                        Projection
-                      </div>
-                      <span className="text-muted-foreground text-sm">the reach of your scent</span>
-                    </div>
-                    <svg className="w-5 h-5 text-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="3"/>
-                      <path d="M12 5v-2M12 21v-2M5 12H3M21 12h-2"/>
-                      <path d="M7.05 7.05L5.636 5.636M18.364 18.364l-1.414-1.414M7.05 16.95l-1.414 1.414M18.364 5.636l-1.414 1.414"/>
-                    </svg>
-                  </div>
-                  <div className="h-3 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-charcoal rounded-full transition-all duration-500"
-                      style={{ width: `${product.concentration.projection}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Longevity */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-charcoal text-primary-foreground px-4 py-2 rounded-full font-bold">
-                        Longevity
-                      </div>
-                      <span className="text-muted-foreground text-sm">how long your scent lasts</span>
-                    </div>
-                    <svg className="w-5 h-5 text-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="9"/>
-                      <path d="M12 6v6l4 2"/>
-                      <path d="M3.5 12H2M22 12h-1.5"/>
-                    </svg>
-                  </div>
-                  <div className="h-3 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-charcoal rounded-full transition-all duration-500"
-                      style={{ width: `${product.concentration.longevity}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Fragrance Notes */}
-              <div className="space-y-3 py-4 border-b border-border">
-                <h3 className="font-medium uppercase tracking-wider text-sm">Fragrance Notes</h3>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Top</span>
-                    <span>{product.notes.top.join(", ")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Middle</span>
-                    <span>{product.notes.middle.join(", ")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block mb-1">Base</span>
-                    <span>{product.notes.base.join(", ")}</span>
-                  </div>
-                </div>
+              {/* Viewers Count */}
+              <div className="flex items-center gap-2 text-sm text-charcoal mb-6">
+                <Eye className="w-4 h-4" />
+                <span className="font-medium">{product.viewersCount} People</span>
+                <span className="text-muted-foreground">are viewing right now.</span>
               </div>
 
               {/* Size Selection */}
-              <div className="space-y-3">
-                <h3 className="font-medium uppercase tracking-wider text-sm">Size</h3>
-                <div className="flex flex-wrap gap-3">
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-sm font-medium text-charcoal uppercase tracking-wide">Size</span>
+                  <span className="text-sm text-muted-foreground">Size: {selectedSize.label}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {product.sizes.map((size, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-5 py-3 border rounded-sm transition-all ${
+                      className={`px-4 py-2.5 text-sm font-medium border transition-all ${
                         selectedSize.label === size.label
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-primary"
+                          ? "border-charcoal bg-charcoal text-white"
+                          : "border-border bg-white text-charcoal hover:border-charcoal"
                       }`}
                     >
-                      <span className="block font-medium">{size.label}</span>
-                      <span className="text-xs opacity-80">₹{size.price}</span>
+                      {size.label}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Intensity Section - Accordion */}
+              <div className="border-t border-border">
+                <button
+                  onClick={() => toggleSection("intensity")}
+                  className="w-full flex items-center justify-between py-4 text-left"
+                >
+                  <span className="text-sm font-medium text-charcoal uppercase tracking-wide">Intensity</span>
+                  {expandedSections.intensity ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+                {expandedSections.intensity && (
+                  <div className="pb-4">
+                    <img 
+                      src={intensityImg} 
+                      alt="Perfume Intensity Levels" 
+                      className="w-full max-w-md"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Notes & Composition Section - Accordion */}
+              <div className="border-t border-border">
+                <button
+                  onClick={() => toggleSection("notes")}
+                  className="w-full flex items-center justify-between py-4 text-left"
+                >
+                  <span className="text-sm font-medium text-charcoal uppercase tracking-wide">Notes & Composition</span>
+                  {expandedSections.notes ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+                {expandedSections.notes && (
+                  <div className="pb-6">
+                    <h3 className="font-serif text-xl font-medium text-charcoal mb-6">Notes</h3>
+                    
+                    <div className="space-y-6">
+                      {/* Top Notes */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-charcoal uppercase tracking-wider mb-2">
+                          Top Notes
+                        </h4>
+                        <p className="text-muted-foreground">
+                          {product.notes.top.join(", ")}
+                        </p>
+                      </div>
+
+                      {/* Middle Notes */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-charcoal uppercase tracking-wider mb-2">
+                          Middle Notes
+                        </h4>
+                        <p className="text-muted-foreground">
+                          {product.notes.middle.join(", ")}
+                        </p>
+                      </div>
+
+                      {/* Base Notes */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-charcoal uppercase tracking-wider mb-2">
+                          Base Notes
+                        </h4>
+                        <p className="text-muted-foreground">
+                          {product.notes.base.join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Personality Section - Accordion */}
+              <div className="border-t border-border">
+                <button
+                  onClick={() => toggleSection("personality")}
+                  className="w-full flex items-center justify-between py-4 text-left"
+                >
+                  <span className="text-sm font-medium text-charcoal uppercase tracking-wide">Personality</span>
+                  {expandedSections.personality ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+                {expandedSections.personality && (
+                  <div className="pb-4">
+                    <img 
+                      src={personalityImg} 
+                      alt="Perfume Personality" 
+                      className="w-full max-w-md"
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Quantity */}
-              <div className="space-y-3">
-                <h3 className="font-medium uppercase tracking-wider text-sm">Quantity</h3>
+              <div className="border-t border-border py-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center border border-border rounded-sm">
+                  <span className="text-sm font-medium text-charcoal uppercase tracking-wide">Quantity</span>
+                  <div className="flex items-center border border-border">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="p-3 hover:bg-muted transition-colors"
+                      className="px-3 py-2 hover:bg-muted transition-colors"
                     >
-                      <Minus className="w-4 h-4" />
+                      <Minus className="w-3 h-3" />
                     </button>
-                    <span className="px-6 font-medium">{quantity}</span>
+                    <span className="px-4 py-2 text-sm font-medium min-w-[40px] text-center">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="p-3 hover:bg-muted transition-colors"
+                      className="px-3 py-2 hover:bg-muted transition-colors"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button className="flex-1 btn-primary py-4 text-sm uppercase tracking-wider font-semibold">
-                  Add to Cart
+              <div className="space-y-3 py-4">
+                <button className="w-full bg-charcoal text-white py-3.5 text-sm font-medium uppercase tracking-wider hover:bg-charcoal/90 transition-colors">
+                  Add to cart
                 </button>
-                <button className="w-14 h-14 flex items-center justify-center border border-border rounded-sm hover:border-primary hover:text-primary transition-colors">
-                  <Heart className="w-5 h-5" />
-                </button>
-                <button className="w-14 h-14 flex items-center justify-center border border-border rounded-sm hover:border-primary hover:text-primary transition-colors">
-                  <Share2 className="w-5 h-5" />
+                <button className="w-full bg-primary text-white py-3.5 text-sm font-medium uppercase tracking-wider hover:bg-primary/90 transition-colors">
+                  Buy it now
                 </button>
               </div>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-border">
-                <div className="text-center">
-                  <Truck className="w-6 h-6 mx-auto mb-2 text-primary" />
-                  <span className="text-xs uppercase tracking-wider">Free Shipping</span>
-                </div>
-                <div className="text-center">
-                  <RotateCcw className="w-6 h-6 mx-auto mb-2 text-primary" />
-                  <span className="text-xs uppercase tracking-wider">Easy Returns</span>
-                </div>
-                <div className="text-center">
-                  <Shield className="w-6 h-6 mx-auto mb-2 text-primary" />
-                  <span className="text-xs uppercase tracking-wider">100% Authentic</span>
+              {/* Share Section */}
+              <div className="flex items-center gap-3 py-4 border-t border-border">
+                <span className="text-sm text-muted-foreground">Share:</span>
+                <div className="flex gap-2">
+                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-[#1877F2] text-white hover:opacity-90 transition-opacity">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-[#E60023] text-white hover:opacity-90 transition-opacity">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/>
+                    </svg>
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-[#25D366] text-white hover:opacity-90 transition-opacity">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-muted text-charcoal hover:bg-muted/80 transition-colors">
+                    <Share2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
