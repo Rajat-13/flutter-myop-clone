@@ -5,7 +5,8 @@ import BestsellersSection from "@/components/BestsellersSection";
 import CategorySection from "@/components/CategorySection";
 import CreateYourOwnSection from "@/components/CreateYourOwnSection";
 import GenderSection from "@/components/GenderSection";
-import NewsletterSection from "@/components/NewsletterSection";
+import WinterPicksSection from "@/components/WinterPicksSection";
+import ShoppableVideos from "@/components/ShoppableVideos";
 import TrustBadges from "@/components/TrustBadges";
 import Footer from "@/components/Footer";
 
@@ -20,7 +21,8 @@ const Index = () => {
         <CategorySection />
         <CreateYourOwnSection />
         <GenderSection />
-        <NewsletterSection />
+        <WinterPicksSection />
+        <ShoppableVideos />
         <TrustBadges />
       </main>
       <Footer />
