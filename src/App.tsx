@@ -17,7 +17,7 @@ import AllProducts from "./pages/AllProducts";
 import AboutUs from "./pages/AboutUs";
 import FAQ from "./pages/FAQ";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminLayout from "./pages/admin/AdminLayout";
 import NotFound from "./pages/NotFound";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutDialog from "./components/CheckoutDialog";
@@ -60,7 +60,7 @@ const App = () => (
               <Route path="/about-us" element={<AboutUs />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminLayout />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
