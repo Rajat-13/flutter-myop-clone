@@ -214,7 +214,7 @@ const BestsellersSection = () => {
         <div className="relative py-8">
           <div 
             className="flex items-center justify-center min-h-[450px]"
-            style={{ perspective: "1200px" }}
+            style={{ perspective: "1500px" }}
           >
             <div className="relative flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
               {products.map((product, index) => (
