@@ -47,15 +47,25 @@ const WinterPicksSection = () => {
   return (
     <section className="section-padding bg-background">
       <div className="container-wide">
-        <div className="grid lg:grid-cols-3 gap-8">
+        {/* Mobile Title - shown above grid on mobile */}
+        <div className="lg:hidden mb-6 text-center">
+          <h2 className="text-xl font-bold text-charcoal">
+            EXPLORE
+          </h2>
+          <h3 className="text-2xl font-bold text-primary">
+            OUR WINTER PICKS
+          </h3>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Left - Featured Picks Grid */}
-          <div className="lg:col-span-2">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="lg:col-span-2 order-2 lg:order-1">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               {winterPicks.map((pick, index) => (
                 <Link
                   key={index}
                   to={`/products/${pick.slug}`}
-                  className="group relative aspect-square rounded-2xl overflow-hidden"
+                  className="group relative aspect-square rounded-xl md:rounded-2xl overflow-hidden"
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${pick.gradient}`} />
                   <img
@@ -64,13 +74,13 @@ const WinterPicksSection = () => {
                     className="absolute inset-0 w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <h3 className="font-serif text-2xl md:text-3xl font-bold text-white tracking-wider drop-shadow-lg">
+                    <h3 className="font-serif text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white tracking-wider drop-shadow-lg">
                       {pick.name}
                     </h3>
                   </div>
                   {/* Interactive dot */}
-                  <div className="absolute top-4 right-4 w-6 h-6 bg-white/80 rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
-                    <div className="w-2 h-2 bg-charcoal rounded-full" />
+                  <div className="absolute top-2 right-2 md:top-4 md:right-4 w-5 h-5 md:w-6 md:h-6 bg-white/80 rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-charcoal rounded-full" />
                   </div>
                 </Link>
               ))}
@@ -78,8 +88,9 @@ const WinterPicksSection = () => {
           </div>
 
           {/* Right - Carousel */}
-          <div className="lg:col-span-1">
-            <div className="mb-6">
+          <div className="lg:col-span-1 order-1 lg:order-2">
+            {/* Desktop Title */}
+            <div className="hidden lg:block mb-6">
               <h2 className="text-xl md:text-2xl font-bold text-charcoal">
                 EXPLORE
               </h2>
@@ -100,24 +111,24 @@ const WinterPicksSection = () => {
                       to={`/products/${product.slug}`}
                       className="flex-shrink-0 w-full group"
                     >
-                      <div className="aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-teal-100 to-teal-200 mb-4">
+                      <div className="aspect-square rounded-xl md:rounded-2xl overflow-hidden bg-gradient-to-br from-teal-100 to-teal-200 mb-3 md:mb-4">
                         <img
                           src={product.image}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                         <div>
-                          <h4 className="font-medium text-charcoal">{product.name}</h4>
-                          <p className="text-sm text-primary">
+                          <h4 className="font-medium text-charcoal text-sm md:text-base">{product.name}</h4>
+                          <p className="text-xs md:text-sm text-primary">
                             or ₹{Math.round(product.price / 3)}/Month{" "}
-                            <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">
+                            <span className="text-[10px] md:text-xs bg-primary text-white px-1.5 md:px-2 py-0.5 rounded">
                               Buy on EMI
                             </span>
                           </p>
                         </div>
-                        <p className="font-medium text-charcoal">
+                        <p className="font-medium text-charcoal text-sm md:text-base">
                           From Rs. {product.price.toLocaleString()}.00
                         </p>
                       </div>
@@ -127,7 +138,7 @@ const WinterPicksSection = () => {
               </div>
 
               {/* Navigation Dots */}
-              <div className="flex justify-center gap-2 mt-6">
+              <div className="flex justify-center gap-2 mt-4 md:mt-6">
                 {featuredProducts.map((_, index) => (
                   <button
                     key={index}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, ShoppingBag, User, Search, ChevronDown, Heart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -21,6 +21,9 @@ const Header = () => {
   const { itemCount, setIsCartOpen } = useCart();
   const { itemCount: wishlistCount, setIsWishlistOpen } = useWishlist();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const isHomePage = location.pathname === "/";
 
   // Track scroll position to hide marquee
   useEffect(() => {
@@ -56,11 +59,13 @@ const Header = () => {
   return (
     <header 
       className={`fixed left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border transition-all duration-300 ${
-        isScrolled ? "top-0" : "top-8"
+        isScrolled ? "top-0" : isHomePage ? "top-8" : "top-0"
       }`}
     >
       <div className="container-wide">
-        <div className="flex items-center justify-between h-20 md:h-24 px-4">
+        <div className={`flex items-center justify-between px-4 transition-all duration-300 ${
+          isHomePage ? "h-20 md:h-24" : "h-14 md:h-16"
+        }`}>
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2"
