@@ -171,13 +171,13 @@ const WinterPicksSection = () => {
                           <h4 className="font-medium text-charcoal">
                             {product.name}
                           </h4>
-{/*                           <p className="text-sm text-primary"> */}
-{/*                             or ₹{Math.round(product.price / 3)}/Month{" "} */}
-{/*                             <span className="text-xs bg-primary text-white px-2 py-0.5 rounded"> */}
-{/*                               EMI */}
-{/*                             </span> */}
-{/*                           </p> */}
-{/*                         </div> */}
+                          <p className="text-sm text-primary">
+                            or ₹{Math.round(product.price / 3)}/Month{" "}
+                            <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">
+                              EMI
+                            </span>
+                          </p>
+                        </div>
                         <p className="font-medium">
                           ₹{product.price.toLocaleString()}
                         </p>
