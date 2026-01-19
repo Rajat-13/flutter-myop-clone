@@ -60,10 +60,10 @@ const Header = () => {
     <header 
       className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled 
-          ? "top-0 bg-gradient-to-r from-[#1a1817]/98 via-[#2D2A26]/98 to-[#1a1817]/98 backdrop-blur-md shadow-xl" 
+          ? "top-0 bg-[#1a1817] shadow-xl" 
           : isHomePage 
-            ? "top-8 bg-gradient-to-r from-[#1a1817]/95 via-[#2D2A26]/95 to-[#1a1817]/95 backdrop-blur-sm" 
-            : "top-0 bg-gradient-to-r from-[#1a1817]/98 via-[#2D2A26]/98 to-[#1a1817]/98 backdrop-blur-md"
+            ? "top-8 bg-[#1a1817]/95 backdrop-blur-sm" 
+            : "top-0 bg-[#1a1817]"
       }`}
     >
       {/* Premium gold accent line */}
