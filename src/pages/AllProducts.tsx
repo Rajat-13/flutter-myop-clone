@@ -187,7 +187,7 @@ const AllProducts = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="font-serif text-3xl md:text-4xl font-semibold mb-4">
-              All Perfumes
+              Store
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Explore our complete collection of handcrafted fragrances

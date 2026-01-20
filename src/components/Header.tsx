@@ -37,7 +37,7 @@ const Header = () => {
 
   const navLinks = [
     { name: "Home", href: "/" },
-    { name: "All Perfumes", href: "/all-products" },
+    { name: "Store", href: "/all-products" },
     { name: "Personalised", href: "/personalised" },
     { name: "Ai", href: "/my-type" },
     { name: "Accessories", href: "/accessories" },
