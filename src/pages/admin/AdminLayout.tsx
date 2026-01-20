@@ -21,6 +21,8 @@ import {
   Search,
   User,
   Tag,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { Input } from "@/components/ui/input";
@@ -41,6 +43,8 @@ const navItems = [
   { icon: Beaker, label: "Ingredients", path: "/admin/ingredients" },
   { icon: Palette, label: "Perfume Builder", path: "/admin/builder" },
   { icon: Package, label: "Accessories", path: "/admin/accessories" },
+  { icon: Wand2, label: "Personalised Page", path: "/admin/personalised" },
+  { icon: Sparkles, label: "AI Advisor Page", path: "/admin/ai-advisor" },
   { icon: Tag, label: "Coupons", path: "/admin/coupons" },
   { icon: CreditCard, label: "Payments", path: "/admin/payments" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },

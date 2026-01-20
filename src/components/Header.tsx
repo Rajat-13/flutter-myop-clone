@@ -39,7 +39,7 @@ const Header = () => {
     { name: "Home", href: "/" },
     { name: "All Perfumes", href: "/all-products" },
     { name: "Personalised", href: "/personalised" },
-    { name: "My Type", href: "/my-type" },
+    { name: "Ai", href: "/my-type" },
     { name: "Accessories", href: "/accessories" },
   ];
 

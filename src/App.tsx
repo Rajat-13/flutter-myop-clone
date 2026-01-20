@@ -30,6 +30,8 @@ import Payments from "./pages/admin/Payments";
 import Notifications from "./pages/admin/Notifications";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
+import PersonalisedAdmin from "./pages/admin/PersonalisedAdmin";
+import AiAdvisorAdmin from "./pages/admin/AiAdvisorAdmin";
 import NotFound from "./pages/NotFound";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutDialog from "./components/CheckoutDialog";
@@ -82,6 +84,8 @@ const App = () => (
                 <Route path="ingredients" element={<Ingredients />} />
                 <Route path="builder" element={<PerfumeBuilder />} />
                 <Route path="accessories" element={<Products />} />
+                <Route path="personalised" element={<PersonalisedAdmin />} />
+                <Route path="ai-advisor" element={<AiAdvisorAdmin />} />
                 <Route path="coupons" element={<Coupons />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="notifications" element={<Notifications />} />
