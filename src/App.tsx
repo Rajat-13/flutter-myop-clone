@@ -32,6 +32,9 @@ import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
 import PersonalisedAdmin from "./pages/admin/PersonalisedAdmin";
 import AiAdvisorAdmin from "./pages/admin/AiAdvisorAdmin";
+import LandingSetup from "./pages/admin/LandingSetup";
+import ContentPages from "./pages/admin/ContentPages";
+import SearchSeoAdmin from "./pages/admin/SearchSeoAdmin";
 import NotFound from "./pages/NotFound";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutDialog from "./components/CheckoutDialog";
@@ -86,6 +89,9 @@ const App = () => (
                 <Route path="accessories" element={<Products />} />
                 <Route path="personalised" element={<PersonalisedAdmin />} />
                 <Route path="ai-advisor" element={<AiAdvisorAdmin />} />
+                <Route path="landing" element={<LandingSetup />} />
+                <Route path="content" element={<ContentPages />} />
+                <Route path="search-seo" element={<SearchSeoAdmin />} />
                 <Route path="coupons" element={<Coupons />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="notifications" element={<Notifications />} />
