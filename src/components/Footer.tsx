@@ -50,7 +50,7 @@ const Footer = () => {
               Fragrance That Understands You
             </p>
             <p className="text-sm text-primary-foreground/70 leading-relaxed">
-              Crafting personalized fragrances since 2020. Your scent, your story.
+              Crafting personalized fragrances since 2014. Your scent, your story.
             </p>
           </div>
 

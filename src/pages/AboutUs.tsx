@@ -15,8 +15,8 @@ const AboutUs = () => {
             <section>
               <h2 className="font-serif text-2xl font-medium mb-4">Our Story</h2>
               <p className="text-muted-foreground leading-relaxed">
-                MYOP (Make Your Own Perfume) was born from a simple belief: everyone deserves a fragrance 
-                that truly represents who they are. Founded in 2020, we set out to revolutionize the 
+               RIMAE was born from a simple belief: everyone deserves a fragrance
+                that truly represents who they are. Founded in 2014 we set out to revolutionize the
                 perfume industry by offering personalized fragrances crafted with the finest ingredients.
               </p>
             </section>

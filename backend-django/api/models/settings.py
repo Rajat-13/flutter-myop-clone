@@ -6,7 +6,7 @@ from django.db import models
 
 class BrandSettings(models.Model):
     brand_name = models.CharField(max_length=100, default='RIMAE')
-    tagline = models.CharField(max_length=200, default='Make Your Own Perfume')
+    tagline = models.CharField(max_length=200, default='A SCENT THAT REFLECTS YOU')
     currency = models.CharField(max_length=10, default='INR')
     currency_symbol = models.CharField(max_length=5, default='₹')
     
