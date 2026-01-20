@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Minus, Plus, Share2, Eye, ChevronDown, ChevronUp, Star, User, Heart } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import MarqueeBanner from "@/components/MarqueeBanner";
 import TrustBadges from "@/components/TrustBadges";
 import ReviewDialog from "@/components/ReviewDialog";
 import CustomerAlsoLove from "@/components/CustomerAlsoLove";
@@ -156,10 +155,9 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <MarqueeBanner />
       <Header />
       
-      <main className="pt-4 pb-16">
+      <main className="pt-20 md:pt-24 pb-16">
         <div className="container-wide">
           {/* Breadcrumb */}
           <nav className="mb-6 px-4 lg:px-8">

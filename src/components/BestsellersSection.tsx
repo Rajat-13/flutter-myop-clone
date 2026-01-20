@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import ProductCard from "./ProductCard";
 
 const perfumeProducts = [
@@ -93,6 +94,7 @@ const BestsellersSection = () => {
   const [activeTab, setActiveTab] = useState<"perfume" | "attar">("perfume");
   const [activeIndex, setActiveIndex] = useState(2);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const products = activeTab === "perfume" ? perfumeProducts : attarProducts;
 
@@ -220,46 +222,55 @@ const BestsellersSection = () => {
             style={{ perspective: "1200px" }}
           >
             <div className="relative flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
-              {products.map((product, index) => (
-                <div
-                  key={product.id}
-                  onClick={() => setActiveIndex(index)}
-                  className={`absolute transition-all duration-500 ease-out cursor-pointer ${
-                    index === activeIndex ? "z-20" : ""
-                  }`}
-                  style={getCardStyle(index)}
-                >
-                  <div className={`w-64 md:w-72 bg-card rounded-2xl overflow-hidden shadow-xl transition-all duration-300 ${
-                    index === activeIndex ? "ring-2 ring-primary/30 shadow-2xl" : "hover:shadow-lg"
-                  }`}>
-                    <div className="aspect-[3/4] overflow-hidden relative">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-500"
-                      />
-                      {product.tag && (
-                        <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-medium rounded-full ${
-                          product.tag === "Bestseller" ? "bg-primary text-primary-foreground" :
-                          product.tag === "Sale" ? "bg-red-500 text-white" :
-                          "bg-amber-500 text-white"
-                        }`}>
-                          {product.tag}
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-4 bg-gradient-to-t from-background to-card">
-                      <h3 className="font-semibold text-foreground text-center">{product.name}</h3>
-                      <div className="flex items-center justify-center gap-2 mt-2">
-                        <span className="text-lg font-bold text-primary">₹{product.price}</span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-muted-foreground line-through">₹{product.originalPrice}</span>
+              {products.map((product, index) => {
+                const slug = product.name.toLowerCase().replace(/\s+/g, '-');
+                return (
+                  <div
+                    key={product.id}
+                    onClick={() => {
+                      if (index === activeIndex) {
+                        navigate(`/products/${slug}`);
+                      } else {
+                        setActiveIndex(index);
+                      }
+                    }}
+                    className={`absolute transition-all duration-500 ease-out cursor-pointer ${
+                      index === activeIndex ? "z-20" : ""
+                    }`}
+                    style={getCardStyle(index)}
+                  >
+                    <div className={`w-64 md:w-72 bg-card rounded-2xl overflow-hidden shadow-xl transition-all duration-300 ${
+                      index === activeIndex ? "ring-2 ring-primary/30 shadow-2xl" : "hover:shadow-lg"
+                    }`}>
+                      <div className="aspect-[3/4] overflow-hidden relative">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-500"
+                        />
+                        {product.tag && (
+                          <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-medium rounded-full ${
+                            product.tag === "Bestseller" ? "bg-primary text-primary-foreground" :
+                            product.tag === "Sale" ? "bg-red-500 text-white" :
+                            "bg-amber-500 text-white"
+                          }`}>
+                            {product.tag}
+                          </span>
                         )}
+                      </div>
+                      <div className="p-4 bg-gradient-to-t from-background to-card">
+                        <h3 className="font-semibold text-foreground text-center">{product.name}</h3>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                          <span className="text-lg font-bold text-primary">₹{product.price}</span>
+                          {product.originalPrice && (
+                            <span className="text-sm text-muted-foreground line-through">₹{product.originalPrice}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

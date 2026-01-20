@@ -35,11 +35,17 @@ const MyType = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only scroll within the chat container, not the entire page
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll after initial load (when there's more than the welcome message)
+    if (messages.length > 1) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const findMatchingProducts = (query: string): Product[] => {
