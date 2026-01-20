@@ -21,8 +21,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Orders from "./pages/admin/Orders";
 import Customers from "./pages/admin/Customers";
-import Ingredients from "./pages/admin/Ingredients";
-import PerfumeBuilder from "./pages/admin/PerfumeBuilder";
+import AssetManager from "./pages/admin/AssetManager";
 import Products from "./pages/admin/Products";
 import Fragrances from "./pages/admin/Fragrances";
 import Coupons from "./pages/admin/Coupons";
@@ -84,8 +83,7 @@ const App = () => (
                 <Route path="orders" element={<Orders />} />
                 <Route path="customers" element={<Customers />} />
                 <Route path="fragrances" element={<Fragrances />} />
-                <Route path="ingredients" element={<Ingredients />} />
-                <Route path="builder" element={<PerfumeBuilder />} />
+                <Route path="assets" element={<AssetManager />} />
                 <Route path="accessories" element={<Products />} />
                 <Route path="personalised" element={<PersonalisedAdmin />} />
                 <Route path="ai-advisor" element={<AiAdvisorAdmin />} />

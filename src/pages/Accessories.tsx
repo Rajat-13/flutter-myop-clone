@@ -112,11 +112,11 @@ const Accessories = () => {
           
           <div
             ref={scrollRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 md:flex md:overflow-x-auto md:scrollbar-hide pb-4 md:-mx-4 md:px-4"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {accessories.map((item) => (
-              <Card key={item.id} className="overflow-hidden group flex-shrink-0 w-[280px] md:w-[300px]">
+              <Card key={item.id} className="overflow-hidden group md:flex-shrink-0 md:w-[300px]">
                 <div className="aspect-square overflow-hidden">
                   <img
                     src={item.image}
