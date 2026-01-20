@@ -116,7 +116,7 @@ const Header = () => {
             {/* Others Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger className="relative px-4 py-2 text-sm font-medium text-white/80 tracking-wide hover:text-gold transition-all duration-300 flex items-center gap-1 outline-none group">
-                Others
+                OTHERS
                 <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-gold to-gold-light group-hover:w-3/4 transition-all duration-300" />
               </DropdownMenuTrigger>
