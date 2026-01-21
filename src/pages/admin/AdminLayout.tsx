@@ -40,6 +40,7 @@ const navItems = [
   { icon: Package, label: "Fragrances", path: "/admin/fragrances" },
   { icon: Package, label: "Accessories", path: "/admin/accessories" },
   { icon: LayoutDashboard, label: "Landing Setup", path: "/admin/landing" },
+  { icon: Sparkles, label: "Flash Popup", path: "/admin/flash-popup" },
   { icon: Wand2, label: "Personalised Page", path: "/admin/personalised" },
   { icon: Sparkles, label: "AI Advisor Page", path: "/admin/ai-advisor" },
   { icon: LayoutDashboard, label: "Content Pages", path: "/admin/content" },

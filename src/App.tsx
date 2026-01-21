@@ -4,8 +4,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import PageTransition from "./components/PageTransition";
+import FlashPopup from "./components/FlashPopup";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -24,6 +27,8 @@ import Customers from "./pages/admin/Customers";
 import AssetManager from "./pages/admin/AssetManager";
 import Products from "./pages/admin/Products";
 import Fragrances from "./pages/admin/Fragrances";
+import AccessoriesAdmin from "./pages/admin/AccessoriesAdmin";
+import FlashPopupAdmin from "./pages/admin/FlashPopupAdmin";
 import Coupons from "./pages/admin/Coupons";
 import Payments from "./pages/admin/Payments";
 import Notifications from "./pages/admin/Notifications";
@@ -52,6 +57,52 @@ const ScrollToTop = () => {
   return null;
 };
 
+// Animated Routes Component
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+        <Route path="/products/:slug" element={<PageTransition><ProductDetail /></PageTransition>} />
+        <Route path="/cart" element={<PageTransition><Cart /></PageTransition>} />
+        <Route path="/bestsellers" element={<PageTransition><Bestsellers /></PageTransition>} />
+        <Route path="/personalised" element={<PageTransition><Personalised /></PageTransition>} />
+        <Route path="/my-type" element={<PageTransition><MyType /></PageTransition>} />
+        <Route path="/accessories" element={<PageTransition><Accessories /></PageTransition>} />
+        <Route path="/all-products" element={<PageTransition><AllProducts /></PageTransition>} />
+        <Route path="/about-us" element={<PageTransition><AboutUs /></PageTransition>} />
+        <Route path="/faq" element={<PageTransition><FAQ /></PageTransition>} />
+        <Route path="/privacy-policy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+        
+        {/* Admin Routes with Layout */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="fragrances" element={<Fragrances />} />
+          <Route path="assets" element={<AssetManager />} />
+          <Route path="accessories" element={<AccessoriesAdmin />} />
+          <Route path="flash-popup" element={<FlashPopupAdmin />} />
+          <Route path="personalised" element={<PersonalisedAdmin />} />
+          <Route path="ai-advisor" element={<AiAdvisorAdmin />} />
+          <Route path="landing" element={<LandingSetup />} />
+          <Route path="content" element={<ContentPages />} />
+          <Route path="search-seo" element={<SearchSeoAdmin />} />
+          <Route path="coupons" element={<Coupons />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -64,41 +115,8 @@ const App = () => (
             <CartDrawer />
             <CheckoutDialog />
             <WishlistDrawer />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/products/:slug" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/bestsellers" element={<Bestsellers />} />
-              <Route path="/personalised" element={<Personalised />} />
-              <Route path="/my-type" element={<MyType />} />
-              <Route path="/accessories" element={<Accessories />} />
-              <Route path="/all-products" element={<AllProducts />} />
-              <Route path="/about-us" element={<AboutUs />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              
-              {/* Admin Routes with Layout */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="customers" element={<Customers />} />
-                <Route path="fragrances" element={<Fragrances />} />
-                <Route path="assets" element={<AssetManager />} />
-                <Route path="accessories" element={<Products />} />
-                <Route path="personalised" element={<PersonalisedAdmin />} />
-                <Route path="ai-advisor" element={<AiAdvisorAdmin />} />
-                <Route path="landing" element={<LandingSetup />} />
-                <Route path="content" element={<ContentPages />} />
-                <Route path="search-seo" element={<SearchSeoAdmin />} />
-                <Route path="coupons" element={<Coupons />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <FlashPopup />
+            <AnimatedRoutes />
           </BrowserRouter>
         </WishlistProvider>
       </CartProvider>

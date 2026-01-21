@@ -57,13 +57,12 @@ const HeroSlider = () => {
               to={slide.link}
               className="block"
             >
-              {/* Image container - aspect ratio for different screen sizes */}
-              {/* Recommended dimensions: 1920x800 for desktop, 768x600 for mobile */}
-              <div className="w-full aspect-[4/3] md:aspect-[16/7] lg:aspect-[1920/800]">
+              {/* Image container - 1536x1024 images display full without crop */}
+              <div className="w-full aspect-[3/2]">
                 <img
                   src={slide.image}
                   alt={`Slide ${slide.id}`}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-contain bg-muted"
                 />
               </div>
             </Link>

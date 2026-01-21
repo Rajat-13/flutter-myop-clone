@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import AnimatedHeader from "./AnimatedHeader";
+import ScrollReveal from "./ScrollReveal";
 
 const categories = [
   {
@@ -37,33 +39,35 @@ const CategorySection = () => {
       <div className="container-wide">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="heading-section font-bold">
-            Shop by <em className="highlighted-text not-italic">Fragrance Type</em>
-          </h2>
+          <AnimatedHeader>
+            <h2 className="heading-section font-bold">
+              Shop by <em className="highlighted-text not-italic">Fragrance Type</em>
+            </h2>
+          </AnimatedHeader>
         </div>
 
         {/* Category Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {categories.map((category, index) => (
-            <Link
-              key={category.id}
-              to={`/all-products?category=${category.slug}`}
-              className="group relative aspect-[3/4] overflow-hidden rounded-sm animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <img
-                src={category.image}
-                alt={category.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-primary-foreground">
-                <h3 className="font-serif text-lg md:text-xl lg:text-2xl font-medium uppercase tracking-wide break-words">
-                  {category.name}
-                </h3>
-                <p className="text-sm opacity-80 mt-1">{category.description}</p>
-              </div>
-            </Link>
+            <ScrollReveal key={category.id} delay={index * 0.1}>
+              <Link
+                to={`/all-products?category=${category.slug}`}
+                className="group relative aspect-[3/4] overflow-hidden rounded-sm block"
+              >
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-primary-foreground">
+                  <h3 className="font-serif text-lg md:text-xl lg:text-2xl font-medium uppercase tracking-wide break-words">
+                    {category.name}
+                  </h3>
+                  <p className="text-sm opacity-80 mt-1">{category.description}</p>
+                </div>
+              </Link>
+            </ScrollReveal>
           ))}
         </div>
       </div>
