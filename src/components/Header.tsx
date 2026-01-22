@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, ShoppingBag, User, Search, ChevronDown, Heart } from "lucide-react";
+import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import LoginDialog from "./LoginDialog";
@@ -85,10 +86,31 @@ const Header = () => {
           {/* Logo */}
           <div className="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-4">
             <Link to="/" className="flex items-center gap-4 group">
-              <div className="relative">
-                <img src={logoImg} alt="RIMAE Logo" className="h-11 md:h-14 w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full blur-xl" />
-              </div>
+              <motion.div 
+                className="relative"
+                animate={{ 
+                  rotateY: [0, 10, -10, 0],
+                }}
+                transition={{ 
+                  duration: 4, 
+                  repeat: Infinity, 
+                  repeatDelay: 3,
+                  ease: "easeInOut" 
+                }}
+              >
+                <motion.img 
+                  src={logoImg} 
+                  alt="RIMAE Logo" 
+                  className="h-11 md:h-14 w-auto brightness-0 invert"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                />
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-tr from-gold/30 to-transparent rounded-full blur-xl"
+                  animate={{ opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </motion.div>
               <div className="hidden sm:block text-left">
                 <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gold/80 leading-tight font-light">
                   Fragrance That

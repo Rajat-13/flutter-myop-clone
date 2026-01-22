@@ -22,13 +22,16 @@ import FAQ from "./pages/FAQ";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
-import Orders from "./pages/admin/Orders";
+import OrdersNew from "./pages/admin/OrdersNew";
 import Customers from "./pages/admin/Customers";
 import AssetManager from "./pages/admin/AssetManager";
 import Products from "./pages/admin/Products";
 import Fragrances from "./pages/admin/Fragrances";
 import AccessoriesAdmin from "./pages/admin/AccessoriesAdmin";
 import FlashPopupAdmin from "./pages/admin/FlashPopupAdmin";
+import SocialProofAdmin from "./pages/admin/SocialProofAdmin";
+import Inventory from "./pages/admin/Inventory";
+import Logistics from "./pages/admin/Logistics";
 import Coupons from "./pages/admin/Coupons";
 import Payments from "./pages/admin/Payments";
 import Notifications from "./pages/admin/Notifications";
@@ -43,6 +46,7 @@ import NotFound from "./pages/NotFound";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutDialog from "./components/CheckoutDialog";
 import WishlistDrawer from "./components/WishlistDrawer";
+import SocialProofPopup from "./components/SocialProofPopup";
 
 const queryClient = new QueryClient();
 
@@ -79,12 +83,15 @@ const AnimatedRoutes = () => {
         {/* Admin Routes with Layout */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="orders" element={<Orders />} />
+          <Route path="orders" element={<OrdersNew />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="logistics" element={<Logistics />} />
           <Route path="customers" element={<Customers />} />
           <Route path="fragrances" element={<Fragrances />} />
           <Route path="assets" element={<AssetManager />} />
           <Route path="accessories" element={<AccessoriesAdmin />} />
           <Route path="flash-popup" element={<FlashPopupAdmin />} />
+          <Route path="social-proof" element={<SocialProofAdmin />} />
           <Route path="personalised" element={<PersonalisedAdmin />} />
           <Route path="ai-advisor" element={<AiAdvisorAdmin />} />
           <Route path="landing" element={<LandingSetup />} />
