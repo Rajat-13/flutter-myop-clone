@@ -83,6 +83,7 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
   const [mergedConfig, setMergedConfig] = useState<FlashPopupConfig>({ ...defaultConfig, ...config });
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const isHomePage = location.pathname === "/";
 
   useEffect(() => {
     // Load settings from localStorage
@@ -94,15 +95,18 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
   }, []);
 
   useEffect(() => {
-    // Don't show on admin routes
-    if (!mergedConfig.isEnabled || !mergedConfig.showOnLoad || isAdminRoute) return;
+    // Only show on home page and when enabled
+    if (!mergedConfig.isEnabled || !mergedConfig.showOnLoad || !isHomePage) {
+      setIsOpen(false);
+      return;
+    }
 
     const timer = setTimeout(() => {
       setIsOpen(true);
     }, mergedConfig.delaySeconds * 1000);
 
     return () => clearTimeout(timer);
-  }, [mergedConfig.isEnabled, mergedConfig.showOnLoad, mergedConfig.delaySeconds, isAdminRoute]);
+  }, [mergedConfig.isEnabled, mergedConfig.showOnLoad, mergedConfig.delaySeconds, isHomePage]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -112,8 +116,8 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
     window.location.href = mergedConfig.redirectUrl;
   };
 
-  // Don't render on admin routes
-  if (isAdminRoute) return null;
+  // Don't render if not on home page
+  if (!isHomePage) return null;
 
   const animation = animationVariants[mergedConfig.placement];
   const isCentered = mergedConfig.placement === "center";
