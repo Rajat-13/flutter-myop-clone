@@ -191,9 +191,12 @@ const Header = () => {
                     whileHover={{ scale: 1.1 }}
                     animate={isSprayAnimating ? {
                       scale: [1, 1.05, 1],
-                      filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"],
                     } : {}}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    transition={{ 
+                      type: "tween",
+                      duration: 0.4,
+                      ease: "easeInOut"
+                    }}
                   />
                 </motion.div>
                 
@@ -205,6 +208,7 @@ const Header = () => {
                     scale: isSprayAnimating ? [1, 1.3, 1] : [1, 1.1, 1],
                   }}
                   transition={{ 
+                    type: "tween",
                     duration: isSprayAnimating ? 0.8 : 2, 
                     repeat: isSprayAnimating ? 0 : Infinity,
                     ease: "easeInOut"
