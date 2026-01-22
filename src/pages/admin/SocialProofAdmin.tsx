@@ -5,14 +5,17 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Save, Eye, Search } from "lucide-react";
 import { allProducts } from "@/data/products";
 import { toast } from "sonner";
+import type { PopupPlacement } from "@/components/SocialProofPopup";
 
 interface SocialProofSettings {
   enabled: boolean;
   selectedProductIds: string[];
   intervalPattern: number[];
+  placement: PopupPlacement;
 }
 
 const SocialProofAdmin = () => {
@@ -20,6 +23,7 @@ const SocialProofAdmin = () => {
     enabled: true,
     selectedProductIds: allProducts.slice(0, 5).map(p => p.id),
     intervalPattern: [5, 3, 5, 3], // in minutes
+    placement: "bottom-left",
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -31,6 +35,7 @@ const SocialProofAdmin = () => {
       setSettings({
         ...parsed,
         intervalPattern: parsed.intervalPattern.map((ms: number) => ms / 60000), // Convert ms to minutes
+        placement: parsed.placement || "bottom-left",
       });
     }
   }, []);
@@ -78,6 +83,13 @@ const SocialProofAdmin = () => {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const placementOptions: { value: PopupPlacement; label: string }[] = [
+    { value: "bottom-left", label: "Bottom Left" },
+    { value: "bottom-right", label: "Bottom Right" },
+    { value: "top-left", label: "Top Left" },
+    { value: "top-right", label: "Top Right" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -110,6 +122,45 @@ const SocialProofAdmin = () => {
               onCheckedChange={(checked) => setSettings(prev => ({ ...prev, enabled: checked }))}
             />
             <Label>{settings.enabled ? "Enabled" : "Disabled"}</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Placement */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Popup Placement</CardTitle>
+          <CardDescription>Choose where the popup appears on screen</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={settings.placement}
+            onValueChange={(value) => setSettings(prev => ({ ...prev, placement: value as PopupPlacement }))}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          >
+            {placementOptions.map((option) => (
+              <div key={option.value} className="flex items-center space-x-2">
+                <RadioGroupItem value={option.value} id={option.value} />
+                <Label htmlFor={option.value} className="cursor-pointer">{option.label}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+          
+          {/* Visual placement preview */}
+          <div className="mt-4 relative w-full h-32 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/30">
+            <div
+              className={`absolute w-24 h-12 bg-primary/20 border-2 border-primary rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
+                settings.placement === "bottom-left" ? "bottom-2 left-2" :
+                settings.placement === "bottom-right" ? "bottom-2 right-2" :
+                settings.placement === "top-left" ? "top-2 left-2" :
+                "top-2 right-2"
+              }`}
+            >
+              Popup
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+              Screen Preview
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -207,33 +258,43 @@ const SocialProofAdmin = () => {
 
       {/* Preview Modal */}
       {previewVisible && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-start p-6 z-50" onClick={() => setPreviewVisible(false)}>
-          <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-xs animate-slide-in-right" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 p-3">
-              <div className="relative w-16 h-16 flex-shrink-0">
-                <img
-                  src={allProducts[0]?.image}
-                  alt="Preview"
-                  className="w-full h-full object-cover rounded-lg"
-                />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+        <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setPreviewVisible(false)}>
+          <div 
+            className={`absolute ${
+              settings.placement === "bottom-left" ? "bottom-6 left-6" :
+              settings.placement === "bottom-right" ? "bottom-6 right-6" :
+              settings.placement === "top-left" ? "top-6 left-6" :
+              "top-6 right-6"
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-xs animate-scale-in">
+              <div className="flex items-center gap-3 p-3">
+                <div className="relative w-16 h-16 flex-shrink-0">
+                  <img
+                    src={allProducts[0]?.image}
+                    alt="Preview"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-0.5">
+                    Someone from <span className="font-medium text-charcoal">Mumbai, Maharashtra</span>
+                  </p>
+                  <p className="text-sm font-medium text-charcoal truncate">
+                    just purchased this!
+                  </p>
+                  <p className="text-sm text-primary font-semibold truncate">
+                    {allProducts[0]?.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    2 minutes ago
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground mb-0.5">
-                  Someone from <span className="font-medium text-charcoal">Mumbai, Maharashtra</span>
-                </p>
-                <p className="text-sm font-medium text-charcoal truncate">
-                  just purchased this!
-                </p>
-                <p className="text-sm text-primary font-semibold truncate">
-                  {allProducts[0]?.name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  2 minutes ago
-                </p>
-              </div>
+              <div className="h-0.5 bg-primary" />
             </div>
-            <div className="h-0.5 bg-primary" />
           </div>
         </div>
       )}

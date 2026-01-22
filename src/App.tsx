@@ -123,6 +123,7 @@ const App = () => (
             <CheckoutDialog />
             <WishlistDrawer />
             <FlashPopup />
+            <SocialProofPopup />
             <AnimatedRoutes />
           </BrowserRouter>
         </WishlistProvider>

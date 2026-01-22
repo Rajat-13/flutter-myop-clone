@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
+
+export type FlashPopupPlacement = "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 interface FlashPopupConfig {
   isEnabled: boolean;
@@ -13,6 +16,9 @@ interface FlashPopupConfig {
   buttonText: string;
   showOnLoad: boolean;
   delaySeconds: number;
+  width: number;
+  height: number;
+  placement: FlashPopupPlacement;
 }
 
 // Default config - in production this would come from admin settings
@@ -27,7 +33,46 @@ const defaultConfig: FlashPopupConfig = {
   buttonText: "Shop Now",
   showOnLoad: true,
   delaySeconds: 2,
+  width: 400,
+  height: 300,
+  placement: "center",
 };
+
+const placementClasses: Record<FlashPopupPlacement, string> = {
+  center: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+  "top-left": "top-24 left-6 translate-x-0 translate-y-0",
+  "top-right": "top-24 right-6 translate-x-0 translate-y-0",
+  "bottom-left": "bottom-6 left-6 translate-x-0 translate-y-0",
+  "bottom-right": "bottom-6 right-6 translate-x-0 translate-y-0",
+};
+
+const animationVariants = {
+  center: {
+    initial: { opacity: 0, scale: 0.9, y: 20 },
+    animate: { opacity: 1, scale: 1, y: 0 },
+    exit: { opacity: 0, scale: 0.9, y: 20 },
+  },
+  "top-left": {
+    initial: { opacity: 0, x: -50, y: -20 },
+    animate: { opacity: 1, x: 0, y: 0 },
+    exit: { opacity: 0, x: -50, y: -20 },
+  },
+  "top-right": {
+    initial: { opacity: 0, x: 50, y: -20 },
+    animate: { opacity: 1, x: 0, y: 0 },
+    exit: { opacity: 0, x: 50, y: -20 },
+  },
+  "bottom-left": {
+    initial: { opacity: 0, x: -50, y: 20 },
+    animate: { opacity: 1, x: 0, y: 0 },
+    exit: { opacity: 0, x: -50, y: 20 },
+  },
+  "bottom-right": {
+    initial: { opacity: 0, x: 50, y: 20 },
+    animate: { opacity: 1, x: 0, y: 0 },
+    exit: { opacity: 0, x: 50, y: 20 },
+  },
+} as const;
 
 interface FlashPopupProps {
   config?: Partial<FlashPopupConfig>;
@@ -35,10 +80,22 @@ interface FlashPopupProps {
 
 const FlashPopup = ({ config = {} }: FlashPopupProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const mergedConfig = { ...defaultConfig, ...config };
+  const [mergedConfig, setMergedConfig] = useState<FlashPopupConfig>({ ...defaultConfig, ...config });
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   useEffect(() => {
-    if (!mergedConfig.isEnabled || !mergedConfig.showOnLoad) return;
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem("flashPopupSettings");
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings);
+      setMergedConfig(prev => ({ ...prev, ...parsed }));
+    }
+  }, []);
+
+  useEffect(() => {
+    // Don't show on admin routes
+    if (!mergedConfig.isEnabled || !mergedConfig.showOnLoad || isAdminRoute) return;
 
     // Check if popup was already shown in this session
     const wasShown = sessionStorage.getItem("flash-popup-shown");
@@ -50,7 +107,7 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
     }, mergedConfig.delaySeconds * 1000);
 
     return () => clearTimeout(timer);
-  }, [mergedConfig.isEnabled, mergedConfig.showOnLoad, mergedConfig.delaySeconds]);
+  }, [mergedConfig.isEnabled, mergedConfig.showOnLoad, mergedConfig.delaySeconds, isAdminRoute]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -60,33 +117,46 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
     window.location.href = mergedConfig.redirectUrl;
   };
 
+  // Don't render on admin routes
+  if (isAdminRoute) return null;
+
+  const animation = animationVariants[mergedConfig.placement];
+  const isCentered = mergedConfig.placement === "center";
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
-            onClick={handleClose}
-          />
+          {/* Backdrop - only show for centered popup */}
+          {isCentered && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+              onClick={handleClose}
+            />
+          )}
           
           {/* Popup */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={animation.initial}
+            animate={animation.animate}
+            exit={animation.exit}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-[90vw] max-w-md"
+            className={`fixed z-[101] ${placementClasses[mergedConfig.placement]}`}
+            style={{
+              width: `min(${mergedConfig.width}px, 90vw)`,
+              minHeight: mergedConfig.height,
+            }}
           >
             <div
-              className="relative rounded-2xl overflow-hidden shadow-2xl"
+              className="relative rounded-2xl overflow-hidden shadow-2xl h-full"
               style={{
                 background: mergedConfig.backgroundImage 
                   ? `url(${mergedConfig.backgroundImage}) center/cover no-repeat`
                   : mergedConfig.backgroundColor,
+                minHeight: mergedConfig.height,
               }}
             >
               {/* Overlay for text readability when using image */}
@@ -103,7 +173,7 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
               </button>
               
               {/* Content */}
-              <div className="relative z-10 p-8 text-center text-white">
+              <div className="relative z-10 p-8 text-center text-white flex flex-col justify-center h-full" style={{ minHeight: mergedConfig.height }}>
                 <motion.h2
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -136,7 +206,7 @@ const FlashPopup = ({ config = {} }: FlashPopupProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   onClick={handleClick}
-                  className="px-8 py-3 bg-white text-charcoal font-semibold rounded-lg hover:bg-white/90 transition-colors shadow-lg"
+                  className="px-8 py-3 bg-white text-charcoal font-semibold rounded-lg hover:bg-white/90 transition-colors shadow-lg mx-auto"
                 >
                   {mergedConfig.buttonText}
                 </motion.button>

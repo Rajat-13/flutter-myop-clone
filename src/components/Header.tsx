@@ -14,11 +14,68 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logoImg from "@/assets/logo.png";
 
+// Perfume spray particles component
+const SprayParticles = ({ isAnimating }: { isAnimating: boolean }) => {
+  const particles = Array.from({ length: 12 }, (_, i) => i);
+  
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-visible">
+      {particles.map((i) => {
+        const angle = (i / 12) * 360;
+        const delay = i * 0.05;
+        const distance = 20 + Math.random() * 15;
+        
+        return (
+          <motion.div
+            key={i}
+            className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-gold/60"
+            initial={{ 
+              x: 0, 
+              y: 0, 
+              opacity: 0,
+              scale: 0 
+            }}
+            animate={isAnimating ? {
+              x: [0, Math.cos(angle * Math.PI / 180) * distance],
+              y: [0, Math.sin(angle * Math.PI / 180) * distance],
+              opacity: [0, 0.8, 0],
+              scale: [0, 1.5, 0],
+            } : {}}
+            transition={{
+              duration: 0.8,
+              delay,
+              ease: "easeOut",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+// Mist effect component
+const MistEffect = ({ isAnimating }: { isAnimating: boolean }) => {
+  return (
+    <motion.div
+      className="absolute inset-0 pointer-events-none"
+      initial={{ opacity: 0 }}
+      animate={isAnimating ? {
+        opacity: [0, 0.4, 0],
+      } : { opacity: 0 }}
+      transition={{ duration: 1.2, ease: "easeInOut" }}
+    >
+      <div className="absolute inset-0 bg-gradient-radial from-gold/30 via-gold/10 to-transparent blur-md" />
+    </motion.div>
+  );
+};
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLogoRevealed, setIsLogoRevealed] = useState(false);
+  const [isSprayAnimating, setIsSprayAnimating] = useState(false);
   const { itemCount, setIsCartOpen } = useCart();
   const { itemCount: wishlistCount, setIsWishlistOpen } = useWishlist();
   const navigate = useNavigate();
@@ -34,6 +91,29 @@ const Header = () => {
     
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Logo spray animation on mount and interval
+  useEffect(() => {
+    // Initial reveal with spray
+    const revealTimer = setTimeout(() => {
+      setIsSprayAnimating(true);
+      setTimeout(() => {
+        setIsLogoRevealed(true);
+        setIsSprayAnimating(false);
+      }, 800);
+    }, 500);
+
+    // Repeat spray animation every 8 seconds
+    const intervalTimer = setInterval(() => {
+      setIsSprayAnimating(true);
+      setTimeout(() => setIsSprayAnimating(false), 1000);
+    }, 8000);
+
+    return () => {
+      clearTimeout(revealTimer);
+      clearInterval(intervalTimer);
+    };
   }, []);
 
   const navLinks = [
@@ -86,38 +166,68 @@ const Header = () => {
           {/* Logo */}
           <div className="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-4">
             <Link to="/" className="flex items-center gap-4 group">
-              <motion.div 
-                className="relative"
-                animate={{ 
-                  rotateY: [0, 10, -10, 0],
-                }}
-                transition={{ 
-                  duration: 4, 
-                  repeat: Infinity, 
-                  repeatDelay: 3,
-                  ease: "easeInOut" 
-                }}
-              >
-                <motion.img 
-                  src={logoImg} 
-                  alt="RIMAE Logo" 
-                  className="h-11 md:h-14 w-auto brightness-0 invert"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                />
+              <div className="relative">
+                {/* Spray particles */}
+                <SprayParticles isAnimating={isSprayAnimating} />
+                
+                {/* Mist effect */}
+                <MistEffect isAnimating={isSprayAnimating} />
+                
+                {/* Logo with reveal animation */}
+                <motion.div
+                  className="relative"
+                  initial={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
+                  animate={{ 
+                    opacity: isLogoRevealed ? 1 : 0, 
+                    scale: isLogoRevealed ? 1 : 0.8,
+                    filter: isLogoRevealed ? "blur(0px)" : "blur(10px)",
+                  }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
+                  <motion.img 
+                    src={logoImg} 
+                    alt="RIMAE Logo" 
+                    className="h-11 md:h-14 w-auto brightness-0 invert"
+                    whileHover={{ scale: 1.1 }}
+                    animate={isSprayAnimating ? {
+                      scale: [1, 1.05, 1],
+                      filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"],
+                    } : {}}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  />
+                </motion.div>
+                
+                {/* Glow effect */}
                 <motion.div 
-                  className="absolute inset-0 bg-gradient-to-tr from-gold/30 to-transparent rounded-full blur-xl"
-                  animate={{ opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-gradient-to-tr from-gold/40 to-transparent rounded-full blur-xl"
+                  animate={{ 
+                    opacity: isSprayAnimating ? [0.3, 0.8, 0.3] : [0.2, 0.4, 0.2],
+                    scale: isSprayAnimating ? [1, 1.3, 1] : [1, 1.1, 1],
+                  }}
+                  transition={{ 
+                    duration: isSprayAnimating ? 0.8 : 2, 
+                    repeat: isSprayAnimating ? 0 : Infinity,
+                    ease: "easeInOut"
+                  }}
                 />
-              </motion.div>
+              </div>
               <div className="hidden sm:block text-left">
-                <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gold/80 leading-tight font-light">
+                <motion.p 
+                  className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gold/80 leading-tight font-light"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: isLogoRevealed ? 1 : 0, x: isLogoRevealed ? 0 : -10 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                >
                   Fragrance That
-                </p>
-                <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-white/60 leading-tight font-light">
+                </motion.p>
+                <motion.p 
+                  className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-white/60 leading-tight font-light"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: isLogoRevealed ? 1 : 0, x: isLogoRevealed ? 0 : -10 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                >
                   Understands You
-                </p>
+                </motion.p>
               </div>
             </Link>
           </div>

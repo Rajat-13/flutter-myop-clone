@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { allProducts } from "@/data/products";
 
 // Indian cities for random display
@@ -44,11 +44,44 @@ const defaultSelectedProducts = allProducts.slice(0, 5).map(p => p.id);
 // Interval pattern in milliseconds (5,3,5,3 minutes)
 const intervalPattern = [5 * 60 * 1000, 3 * 60 * 1000, 5 * 60 * 1000, 3 * 60 * 1000];
 
+export type PopupPlacement = "bottom-left" | "bottom-right" | "top-left" | "top-right";
+
 interface SocialProofSettings {
   enabled: boolean;
   selectedProductIds: string[];
   intervalPattern: number[];
+  placement: PopupPlacement;
 }
+
+const placementClasses: Record<PopupPlacement, string> = {
+  "bottom-left": "bottom-6 left-6",
+  "bottom-right": "bottom-6 right-6",
+  "top-left": "top-24 left-6",
+  "top-right": "top-24 right-6",
+};
+
+const animationVariants = {
+  "bottom-left": {
+    initial: { x: -100, opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: -100, opacity: 0 },
+  },
+  "bottom-right": {
+    initial: { x: 100, opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: 100, opacity: 0 },
+  },
+  "top-left": {
+    initial: { x: -100, opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: -100, opacity: 0 },
+  },
+  "top-right": {
+    initial: { x: 100, opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: 100, opacity: 0 },
+  },
+} as const;
 
 const SocialProofPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -59,18 +92,27 @@ const SocialProofPopup = () => {
     enabled: true,
     selectedProductIds: defaultSelectedProducts,
     intervalPattern: intervalPattern,
+    placement: "bottom-left",
   });
+  
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   useEffect(() => {
     // Load settings from localStorage
     const savedSettings = localStorage.getItem("socialProofSettings");
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      const parsed = JSON.parse(savedSettings);
+      setSettings({
+        ...parsed,
+        placement: parsed.placement || "bottom-left",
+      });
     }
   }, []);
 
   useEffect(() => {
-    if (!settings.enabled) return;
+    // Don't show on admin routes
+    if (!settings.enabled || isAdminRoute) return;
 
     const showPopup = () => {
       const availableProducts = allProducts.filter(p => 
@@ -110,23 +152,26 @@ const SocialProofPopup = () => {
       clearTimeout(initialTimeout);
       clearTimeout(intervalTimeout);
     };
-  }, [settings, intervalIndex]);
+  }, [settings, intervalIndex, isAdminRoute]);
 
   const handleClose = () => {
     setIsVisible(false);
   };
 
-  if (!currentProduct) return null;
+  // Don't render on admin routes
+  if (isAdminRoute || !currentProduct) return null;
+
+  const animation = animationVariants[settings.placement];
 
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -100, opacity: 0 }}
+          initial={animation.initial}
+          animate={animation.animate}
+          exit={animation.exit}
           transition={{ type: "spring", damping: 20, stiffness: 300 }}
-          className="fixed bottom-6 left-6 z-50 max-w-xs"
+          className={`fixed z-50 max-w-xs ${placementClasses[settings.placement]}`}
         >
           <Link
             to={`/products/${currentProduct.slug}`}
