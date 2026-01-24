@@ -48,6 +48,47 @@ PUT    /ingredients/<id>/           - Update ingredient
 DELETE /ingredients/<id>/           - Delete ingredient
 
 =============================================================================
+BANNER ENDPOINTS
+=============================================================================
+GET    /banners/                    - List all banners
+POST   /banners/                    - Create banner (Admin)
+GET    /banners/<id>/               - Get single banner
+PUT    /banners/<id>/               - Update banner (Admin)
+DELETE /banners/<id>/               - Delete banner (Admin)
+GET    /banners/active/             - Get active banners for frontend
+
+=============================================================================
+MARQUEE ENDPOINTS
+=============================================================================
+GET    /marquee/                    - List marquee settings
+POST   /marquee/                    - Create marquee setting (Admin)
+PUT    /marquee/<id>/               - Update marquee setting (Admin)
+GET    /marquee/active/             - Get active marquee for frontend
+
+=============================================================================
+INVENTORY ENDPOINTS (Admin)
+=============================================================================
+GET    /inventory/                  - List all inventory (paginated)
+POST   /inventory/                  - Create inventory item
+GET    /inventory/<id>/             - Get single inventory item
+PUT    /inventory/<id>/             - Update inventory item
+DELETE /inventory/<id>/             - Delete inventory item
+POST   /inventory/<id>/adjust/      - Adjust stock level
+GET    /inventory/stats/            - Get inventory statistics
+GET    /stock-movements/            - List all stock movements
+
+=============================================================================
+ASSET ENDPOINTS (Admin)
+=============================================================================
+GET    /assets/                     - List all assets
+POST   /assets/                     - Create asset record
+GET    /assets/<id>/                - Get single asset
+PUT    /assets/<id>/                - Update asset metadata
+DELETE /assets/<id>/                - Delete asset record
+PUT    /assets/<id>/update-usage/   - Update where asset is used
+GET    /assets/stats/               - Get asset statistics
+
+=============================================================================
 ORDER ENDPOINTS
 =============================================================================
 GET    /orders/                     - List user orders (paginated)
@@ -155,6 +196,14 @@ from .views.analytics_views import AnalyticsView
 from .views.payment_views import PaymentViewSet
 from .views.notification_views import NotificationViewSet
 from .views.settings_views import SettingsView
+from .views.banner_views import (
+    BannerViewSet, PublicBannersView, 
+    MarqueeSettingViewSet, ActiveMarqueeView
+)
+from .views.inventory_views import (
+    InventoryViewSet, InventoryStatsView, StockMovementViewSet
+)
+from .views.asset_views import AssetViewSet, AssetStatsView
 
 # Router setup
 router = DefaultRouter()
@@ -168,6 +217,11 @@ router.register(r'wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'customers', CustomerViewSet, basename='customer')
 router.register(r'payments', PaymentViewSet, basename='payment')
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'banners', BannerViewSet, basename='banner')
+router.register(r'marquee', MarqueeSettingViewSet, basename='marquee')
+router.register(r'inventory', InventoryViewSet, basename='inventory')
+router.register(r'stock-movements', StockMovementViewSet, basename='stock-movement')
+router.register(r'assets', AssetViewSet, basename='asset')
 
 urlpatterns = [
     # Router URLs
@@ -189,6 +243,18 @@ urlpatterns = [
     # ===== Fragrances (Admin) =====
     path('fragrances/<int:pk>/images/', FragranceImageUploadView.as_view(), name='fragrance-image-upload'),
     path('fragrances/<int:pk>/images/<int:img_id>/', FragranceImageDeleteView.as_view(), name='fragrance-image-delete'),
+    
+    # ===== Banners =====
+    path('banners/active/', PublicBannersView.as_view(), name='active-banners'),
+    
+    # ===== Marquee =====
+    path('marquee/active/', ActiveMarqueeView.as_view(), name='active-marquee'),
+    
+    # ===== Inventory (Admin) =====
+    path('inventory/stats/', InventoryStatsView.as_view(), name='inventory-stats'),
+    
+    # ===== Assets (Admin) =====
+    path('assets/stats/', AssetStatsView.as_view(), name='asset-stats'),
     
     # ===== Reviews =====
     path('products/<int:product_id>/reviews/', ReviewViewSet.as_view({'get': 'list', 'post': 'create'}), name='product-reviews'),

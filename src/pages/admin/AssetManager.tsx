@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,132 +15,41 @@ import {
   FileImage,
   FileVideo,
   Eye,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Asset {
-  id: string;
-  name: string;
-  type: "image" | "video";
-  url: string;
-  size: string;
-  uploadedAt: string;
-  usedIn: string[];
-}
-
-// Mock assets data - replace with actual storage integration
-const mockAssets: Asset[] = [
-  {
-    id: "1",
-    name: "hero-slide-1.png",
-    type: "image",
-    url: "/src/assets/hero-slide-1.png",
-    size: "245 KB",
-    uploadedAt: "2024-01-15",
-    usedIn: ["Home Page - Hero Slider"]
-  },
-  {
-    id: "2",
-    name: "hero-slide-2.png",
-    type: "image",
-    url: "/src/assets/hero-slide-2.png",
-    size: "312 KB",
-    uploadedAt: "2024-01-15",
-    usedIn: ["Home Page - Hero Slider"]
-  },
-  {
-    id: "3",
-    name: "hero-slide-3.png",
-    type: "image",
-    url: "/src/assets/hero-slide-3.png",
-    size: "287 KB",
-    uploadedAt: "2024-01-15",
-    usedIn: ["Home Page - Hero Slider"]
-  },
-  {
-    id: "4",
-    name: "for-him.png",
-    type: "image",
-    url: "/src/assets/for-him.png",
-    size: "156 KB",
-    uploadedAt: "2024-01-14",
-    usedIn: ["Home Page - Gender Section"]
-  },
-  {
-    id: "5",
-    name: "for-her.png",
-    type: "image",
-    url: "/src/assets/for-her.png",
-    size: "178 KB",
-    uploadedAt: "2024-01-14",
-    usedIn: ["Home Page - Gender Section"]
-  },
-  {
-    id: "6",
-    name: "unisex.png",
-    type: "image",
-    url: "/src/assets/unisex.png",
-    size: "145 KB",
-    uploadedAt: "2024-01-14",
-    usedIn: ["Home Page - Gender Section"]
-  },
-  {
-    id: "7",
-    name: "logo.png",
-    type: "image",
-    url: "/src/assets/logo.png",
-    size: "24 KB",
-    uploadedAt: "2024-01-10",
-    usedIn: ["Header", "Footer", "Admin Sidebar"]
-  },
-  {
-    id: "8",
-    name: "perfume-video.mp4",
-    type: "video",
-    url: "/public/videos/perfume-video.mp4",
-    size: "4.2 MB",
-    uploadedAt: "2024-01-12",
-    usedIn: ["Home Page - Shoppable Videos"]
-  },
-  {
-    id: "9",
-    name: "concentration-comparison.jpg",
-    type: "image",
-    url: "/src/assets/concentration-comparison.jpg",
-    size: "89 KB",
-    uploadedAt: "2024-01-11",
-    usedIn: ["Personalised Page"]
-  },
-  {
-    id: "10",
-    name: "intensity-reference.webp",
-    type: "image",
-    url: "/src/assets/intensity-reference.webp",
-    size: "67 KB",
-    uploadedAt: "2024-01-11",
-    usedIn: ["Personalised Page"]
-  },
-  {
-    id: "11",
-    name: "personality-reference.webp",
-    type: "image",
-    url: "/src/assets/personality-reference.webp",
-    size: "72 KB",
-    uploadedAt: "2024-01-11",
-    usedIn: ["Personalised Page"]
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { adminAPI, Asset } from "@/lib/api";
 
 const AssetManager = () => {
-  const [assets, setAssets] = useState<Asset[]>(mockAssets);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
+  // Fetch assets from API
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        setIsLoading(true);
+        const response = await adminAPI.assets.list();
+        setAssets(response.results || []);
+      } catch (error) {
+        console.error('Failed to fetch assets:', error);
+        toast.error('Failed to load assets');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAssets();
+  }, []);
+
   const filteredAssets = assets.filter(asset =>
     asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.usedIn.some(usage => usage.toLowerCase().includes(searchQuery.toLowerCase()))
+    asset.used_in?.some(usage => usage.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const imageAssets = filteredAssets.filter(a => a.type === "image");
@@ -171,34 +80,80 @@ const AssetManager = () => {
     }
   };
 
-  const handleFiles = (files: FileList) => {
-    Array.from(files).forEach(file => {
-      const isVideo = file.type.startsWith("video/");
-      const newAsset: Asset = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        type: isVideo ? "video" : "image",
-        url: URL.createObjectURL(file),
-        size: formatFileSize(file.size),
-        uploadedAt: new Date().toISOString().split("T")[0],
-        usedIn: []
-      };
-      setAssets(prev => [newAsset, ...prev]);
-    });
-    toast.success(`${files.length} file(s) uploaded successfully`);
+  const handleFiles = async (files: FileList) => {
+    setIsUploading(true);
+    
+    try {
+      for (const file of Array.from(files)) {
+        const isVideo = file.type.startsWith("video/");
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `uploads/${fileName}`;
+        
+        // Upload to Supabase storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('assets')
+          .upload(filePath, file);
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('assets')
+          .getPublicUrl(filePath);
+        
+        // Save metadata to database via API
+        try {
+          const newAsset = await adminAPI.assets.create({
+            name: file.name,
+            type: isVideo ? 'video' : 'image',
+            storage_path: filePath,
+            url: publicUrl,
+            size_bytes: file.size,
+            mime_type: file.type,
+            used_in: [],
+          });
+          
+          setAssets(prev => [newAsset, ...prev]);
+        } catch (apiError) {
+          console.error('Failed to save asset metadata:', apiError);
+          // Still show success since file uploaded
+        }
+      }
+      
+      toast.success(`${files.length} file(s) uploaded successfully`);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload files');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
-  const deleteAsset = (id: string) => {
-    setAssets(prev => prev.filter(a => a.id !== id));
-    toast.success("Asset deleted");
+  const deleteAsset = async (asset: Asset) => {
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('assets')
+        .remove([asset.storage_path]);
+      
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+      }
+      
+      // Delete from API
+      await adminAPI.assets.delete(asset.id);
+      
+      setAssets(prev => prev.filter(a => a.id !== asset.id));
+      toast.success("Asset deleted");
+    } catch (error) {
+      console.error('Failed to delete asset:', error);
+      toast.error('Failed to delete asset');
+    }
   };
 
   const AssetCard = ({ asset }: { asset: Asset }) => (
@@ -239,7 +194,7 @@ const AssetManager = () => {
             size="icon" 
             variant="destructive" 
             className="h-8 w-8"
-            onClick={() => deleteAsset(asset.id)}
+            onClick={() => deleteAsset(asset)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -257,21 +212,21 @@ const AssetManager = () => {
           <h4 className="font-medium text-sm truncate flex-1" title={asset.name}>
             {asset.name}
           </h4>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">{asset.size}</span>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{asset.size_formatted}</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{asset.uploadedAt}</span>
+          <span>{new Date(asset.created_at).toLocaleDateString()}</span>
         </div>
-        {asset.usedIn.length > 0 && (
+        {asset.used_in && asset.used_in.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {asset.usedIn.map((usage, idx) => (
+            {asset.used_in.map((usage, idx) => (
               <Badge key={idx} variant="outline" className="text-xs py-0">
                 {usage}
               </Badge>
             ))}
           </div>
         )}
-        {asset.usedIn.length === 0 && (
+        {(!asset.used_in || asset.used_in.length === 0) && (
           <Badge variant="secondary" className="text-xs py-0 bg-yellow-100 text-yellow-800">
             Not in use
           </Badge>
@@ -279,6 +234,14 @@ const AssetManager = () => {
       </CardContent>
     </Card>
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -306,29 +269,38 @@ const AssetManager = () => {
             onDrop={handleDrop}
           >
             <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Upload className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Drag & drop files here</p>
-                <p className="text-sm text-muted-foreground">or click to browse</p>
-              </div>
-              <Input
-                type="file"
-                multiple
-                accept="image/*,video/*"
-                className="hidden"
-                id="file-upload"
-                onChange={(e) => e.target.files && handleFiles(e.target.files)}
-              />
-              <Button asChild variant="outline">
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  Browse Files
-                </label>
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Supported: JPG, PNG, WEBP, GIF, MP4, MOV (Max 50MB)
-              </p>
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="font-medium">Uploading...</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Drag & drop files here</p>
+                    <p className="text-sm text-muted-foreground">or click to browse</p>
+                  </div>
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    className="hidden"
+                    id="file-upload"
+                    onChange={(e) => e.target.files && handleFiles(e.target.files)}
+                  />
+                  <Button asChild variant="outline">
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      Browse Files
+                    </label>
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Supported: JPG, PNG, WEBP, GIF, MP4, MOV (Max 50MB)
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
@@ -436,17 +408,17 @@ const AssetManager = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Size:</span>
-                  <span className="text-sm">{selectedAsset.size}</span>
+                  <span className="text-sm">{selectedAsset.size_formatted}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Uploaded:</span>
-                  <span className="text-sm">{selectedAsset.uploadedAt}</span>
+                  <span className="text-sm">{new Date(selectedAsset.created_at).toLocaleDateString()}</span>
                 </div>
                 <div>
                   <span className="text-sm font-medium">Used in:</span>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {selectedAsset.usedIn.length > 0 ? (
-                      selectedAsset.usedIn.map((usage, idx) => (
+                    {selectedAsset.used_in && selectedAsset.used_in.length > 0 ? (
+                      selectedAsset.used_in.map((usage, idx) => (
                         <Badge key={idx} variant="outline">
                           <ExternalLink className="w-3 h-3 mr-1" />
                           {usage}

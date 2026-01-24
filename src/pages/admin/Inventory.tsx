@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -9,7 +9,7 @@ import {
   TrendingDown,
   History,
   Save,
-  X,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,80 +31,54 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { allProducts } from "@/data/products";
-
-interface InventoryItem {
-  id: string;
-  productId: string;
-  productName: string;
-  productImage: string;
-  sku: string;
-  currentStock: number;
-  reorderLevel: number;
-  costPerUnit: number;
-  supplierName: string;
-  lastRestocked: string;
-  size: string;
-  location: string;
-}
-
-interface StockMovement {
-  id: string;
-  productId: string;
-  type: "in" | "out" | "adjustment";
-  quantity: number;
-  reason: string;
-  date: string;
-  performedBy: string;
-}
-
-// Sample inventory data
-const sampleInventory: InventoryItem[] = allProducts.slice(0, 8).map((p, i) => ({
-  id: `inv-${i + 1}`,
-  productId: p.id,
-  productName: p.name,
-  productImage: p.image,
-  sku: `RIM-${p.category.slice(0, 3).toUpperCase()}-${String(i + 1).padStart(4, "0")}`,
-  currentStock: Math.floor(Math.random() * 100) + 10,
-  reorderLevel: 20,
-  costPerUnit: Math.floor(p.price * 0.4),
-  supplierName: ["Fragrance House", "Aroma Suppliers", "Scent Masters"][i % 3],
-  lastRestocked: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-  size: ["8ml", "50ml", "100ml"][i % 3],
-  location: `Warehouse ${String.fromCharCode(65 + (i % 3))}`,
-}));
-
-const sampleMovements: StockMovement[] = [
-  { id: "1", productId: "1", type: "in", quantity: 50, reason: "Restock from supplier", date: "2024-01-20", performedBy: "Admin" },
-  { id: "2", productId: "2", type: "out", quantity: 5, reason: "Order fulfillment", date: "2024-01-19", performedBy: "System" },
-  { id: "3", productId: "1", type: "adjustment", quantity: -2, reason: "Damaged goods", date: "2024-01-18", performedBy: "Admin" },
-];
+import { toast } from "sonner";
+import { adminAPI, InventoryItem, StockMovement, InventoryStats } from "@/lib/api";
 
 const Inventory = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>(sampleInventory);
-  const [movements, setMovements] = useState<StockMovement[]>(sampleMovements);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [stats, setStats] = useState<InventoryStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [adjustmentData, setAdjustmentData] = useState({ quantity: 0, type: "in", reason: "" });
 
+  // Fetch inventory data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [inventoryRes, movementsRes, statsRes] = await Promise.all([
+          adminAPI.inventory.list({ stock_filter: stockFilter as any }),
+          adminAPI.stockMovements.list(),
+          adminAPI.inventory.getStats(),
+        ]);
+        setInventory(inventoryRes.results || []);
+        setMovements(movementsRes.results || []);
+        setStats(statsRes);
+      } catch (error) {
+        console.error('Failed to fetch inventory:', error);
+        toast.error('Failed to load inventory data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [stockFilter]);
+
   const filteredInventory = inventory.filter((item) => {
     const matchesSearch =
-      item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStock =
-      stockFilter === "all" ||
-      (stockFilter === "low" && item.currentStock <= item.reorderLevel) ||
-      (stockFilter === "out" && item.currentStock === 0) ||
-      (stockFilter === "healthy" && item.currentStock > item.reorderLevel);
-    return matchesSearch && matchesStock;
+      item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
-  const totalValue = inventory.reduce((sum, item) => sum + item.currentStock * item.costPerUnit, 0);
-  const lowStockCount = inventory.filter(i => i.currentStock <= i.reorderLevel).length;
-  const outOfStockCount = inventory.filter(i => i.currentStock === 0).length;
-  const totalUnits = inventory.reduce((sum, i) => sum + i.currentStock, 0);
+  const totalValue = stats?.total_value || 0;
+  const lowStockCount = stats?.low_stock_count || 0;
+  const outOfStockCount = stats?.out_of_stock_count || 0;
+  const totalUnits = stats?.total_units || 0;
 
   const handleAdjustStock = (item: InventoryItem) => {
     setSelectedItem(item);
@@ -112,32 +86,41 @@ const Inventory = () => {
     setIsAdjustOpen(true);
   };
 
-  const handleSaveAdjustment = () => {
+  const handleSaveAdjustment = async () => {
     if (!selectedItem) return;
 
-    const adjustedQty = adjustmentData.type === "out" ? -adjustmentData.quantity : adjustmentData.quantity;
-    
-    setInventory(inventory.map(item =>
-      item.id === selectedItem.id
-        ? { ...item, currentStock: Math.max(0, item.currentStock + adjustedQty) }
-        : item
-    ));
-
-    setMovements([
-      {
-        id: Date.now().toString(),
-        productId: selectedItem.productId,
-        type: adjustmentData.type as "in" | "out" | "adjustment",
+    try {
+      await adminAPI.inventory.adjust(selectedItem.id, {
+        type: adjustmentData.type as 'in' | 'out' | 'adjustment',
         quantity: adjustmentData.quantity,
         reason: adjustmentData.reason,
-        date: new Date().toISOString().split('T')[0],
-        performedBy: "Admin",
-      },
-      ...movements,
-    ]);
-
-    setIsAdjustOpen(false);
+      });
+      
+      // Refresh data
+      const [inventoryRes, movementsRes, statsRes] = await Promise.all([
+        adminAPI.inventory.list({ stock_filter: stockFilter as any }),
+        adminAPI.stockMovements.list(),
+        adminAPI.inventory.getStats(),
+      ]);
+      setInventory(inventoryRes.results || []);
+      setMovements(movementsRes.results || []);
+      setStats(statsRes);
+      
+      toast.success('Stock adjusted successfully');
+      setIsAdjustOpen(false);
+    } catch (error) {
+      console.error('Failed to adjust stock:', error);
+      toast.error('Failed to adjust stock');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -240,65 +223,75 @@ const Inventory = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredInventory.map((item) => (
-                  <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.productImage}
-                          alt={item.productName}
-                          className="w-10 h-10 rounded-lg object-cover"
-                        />
-                        <span className="font-medium text-sm">{item.productName}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <code className="text-xs bg-muted px-2 py-1 rounded">{item.sku}</code>
-                    </td>
-                    <td className="py-4 px-4 text-sm">{item.size}</td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${
-                          item.currentStock === 0 ? 'text-red-600' :
-                          item.currentStock <= item.reorderLevel ? 'text-amber-600' :
-                          'text-emerald-600'
-                        }`}>
-                          {item.currentStock}
-                        </span>
-                        {item.currentStock <= item.reorderLevel && item.currentStock > 0 && (
-                          <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs">
-                            Low
-                          </Badge>
-                        )}
-                        {item.currentStock === 0 && (
-                          <Badge variant="outline" className="text-red-600 border-red-300 text-xs">
-                            Out
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 hidden md:table-cell text-sm">{item.reorderLevel}</td>
-                    <td className="py-4 px-4 hidden lg:table-cell">
-                      <span className="font-medium">₹{item.costPerUnit}</span>
-                    </td>
-                    <td className="py-4 px-4 hidden lg:table-cell text-sm text-muted-foreground">
-                      {item.supplierName}
-                    </td>
-                    <td className="py-4 px-4 hidden xl:table-cell text-sm text-muted-foreground">
-                      {item.location}
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAdjustStock(item)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Adjust
-                      </Button>
+                {filteredInventory.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-8 text-muted-foreground">
+                      No inventory items found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredInventory.map((item) => (
+                    <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          {item.product_image && (
+                            <img
+                              src={item.product_image}
+                              alt={item.product_name}
+                              className="w-10 h-10 rounded-lg object-cover"
+                            />
+                          )}
+                          <span className="font-medium text-sm">{item.product_name}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <code className="text-xs bg-muted px-2 py-1 rounded">{item.sku}</code>
+                      </td>
+                      <td className="py-4 px-4 text-sm">{item.size}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${
+                            item.stock_status === 'out_of_stock' ? 'text-red-600' :
+                            item.stock_status === 'low_stock' ? 'text-amber-600' :
+                            'text-emerald-600'
+                          }`}>
+                            {item.current_stock}
+                          </span>
+                          {item.stock_status === 'low_stock' && (
+                            <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs">
+                              Low
+                            </Badge>
+                          )}
+                          {item.stock_status === 'out_of_stock' && (
+                            <Badge variant="outline" className="text-red-600 border-red-300 text-xs">
+                              Out
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 hidden md:table-cell text-sm">{item.reorder_level}</td>
+                      <td className="py-4 px-4 hidden lg:table-cell">
+                        <span className="font-medium">₹{item.cost_per_unit}</span>
+                      </td>
+                      <td className="py-4 px-4 hidden lg:table-cell text-sm text-muted-foreground">
+                        {item.supplier_name}
+                      </td>
+                      <td className="py-4 px-4 hidden xl:table-cell text-sm text-muted-foreground">
+                        {item.location}
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAdjustStock(item)}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Adjust
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -315,27 +308,29 @@ const Inventory = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {movements.slice(0, 5).map((movement) => (
-              <div key={movement.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">
-                    {inventory.find(i => i.productId === movement.productId)?.productName || "Unknown Product"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{movement.reason}</p>
+            {movements.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">No recent movements</p>
+            ) : (
+              movements.slice(0, 5).map((movement) => (
+                <div key={movement.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">Movement #{movement.id}</p>
+                    <p className="text-xs text-muted-foreground">{movement.reason || 'No reason specified'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-bold ${
+                      movement.type === "in" ? "text-emerald-600" :
+                      movement.type === "out" ? "text-red-600" :
+                      "text-amber-600"
+                    }`}>
+                      {movement.type === "out" ? "-" : movement.type === "in" ? "+" : "±"}
+                      {Math.abs(movement.quantity)}
+                    </span>
+                    <p className="text-xs text-muted-foreground">{new Date(movement.created_at).toLocaleDateString()}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`font-bold ${
-                    movement.type === "in" ? "text-emerald-600" :
-                    movement.type === "out" ? "text-red-600" :
-                    "text-amber-600"
-                  }`}>
-                    {movement.type === "out" ? "-" : movement.type === "in" ? "+" : "±"}
-                    {movement.quantity}
-                  </span>
-                  <p className="text-xs text-muted-foreground">{movement.date}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -344,12 +339,12 @@ const Inventory = () => {
       <Dialog open={isAdjustOpen} onOpenChange={setIsAdjustOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Adjust Stock - {selectedItem?.productName}</DialogTitle>
+            <DialogTitle>Adjust Stock - {selectedItem?.product_name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted/30 rounded-lg">
               <p className="text-sm text-muted-foreground">Current Stock</p>
-              <p className="text-2xl font-bold">{selectedItem?.currentStock} units</p>
+              <p className="text-2xl font-bold">{selectedItem?.current_stock} units</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
