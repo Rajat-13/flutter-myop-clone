@@ -12,6 +12,9 @@ from .review import Review
 from .payment import Payment
 from .notification import Notification
 from .settings import BrandSettings
+from .banner import Banner, MarqueeSetting
+from .inventory import Inventory, StockMovement
+from .asset import Asset
 
 __all__ = [
     'User', 'OTP',
@@ -25,4 +28,7 @@ __all__ = [
     'Payment',
     'Notification',
     'BrandSettings',
+    'Banner', 'MarqueeSetting',
+    'Inventory', 'StockMovement',
+    'Asset',
 ]

@@ -354,6 +354,118 @@ export const adminAPI = {
         body: JSON.stringify(data),
       }),
   },
+
+  // Banners
+  banners: {
+    list: () => request<Banner[]>('/banners/'),
+    getActive: () => request<Banner[]>('/banners/active/'),
+    create: (data: FormData) =>
+      fetch(`${API_BASE_URL}/banners/`, {
+        method: 'POST',
+        headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+        body: data,
+      }).then(res => res.json()),
+    update: (id: number, data: FormData) =>
+      fetch(`${API_BASE_URL}/banners/${id}/`, {
+        method: 'PUT',
+        headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+        body: data,
+      }).then(res => res.json()),
+    delete: (id: number) =>
+      request(`/banners/${id}/`, { method: 'DELETE' }),
+  },
+
+  // Marquee
+  marquee: {
+    list: () => request<MarqueeSetting[]>('/marquee/'),
+    getActive: () => request<MarqueeSetting>('/marquee/active/'),
+    create: (data: MarqueeSettingInput) =>
+      request<MarqueeSetting>('/marquee/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: Partial<MarqueeSettingInput>) =>
+      request<MarqueeSetting>(`/marquee/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Inventory
+  inventory: {
+    list: (params?: InventoryListParams) => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', String(params.page));
+      if (params?.search) searchParams.set('search', params.search);
+      if (params?.stock_filter) {
+        if (params.stock_filter === 'low') {
+          searchParams.set('current_stock__lte', 'reorder_level');
+        } else if (params.stock_filter === 'out') {
+          searchParams.set('current_stock', '0');
+        }
+      }
+      return request<PaginatedResponse<InventoryItem>>(`/inventory/?${searchParams}`);
+    },
+    get: (id: number) => request<InventoryItem>(`/inventory/${id}/`),
+    create: (data: InventoryItemInput) =>
+      request<InventoryItem>('/inventory/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: Partial<InventoryItemInput>) =>
+      request<InventoryItem>(`/inventory/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request(`/inventory/${id}/`, { method: 'DELETE' }),
+    adjust: (id: number, data: StockAdjustment) =>
+      request<InventoryItem>(`/inventory/${id}/adjust/`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    getStats: () => request<InventoryStats>('/inventory/stats/'),
+  },
+
+  // Stock Movements
+  stockMovements: {
+    list: (params?: { page?: number; inventory?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', String(params.page));
+      if (params?.inventory) searchParams.set('inventory', String(params.inventory));
+      return request<PaginatedResponse<StockMovement>>(`/stock-movements/?${searchParams}`);
+    },
+  },
+
+  // Assets
+  assets: {
+    list: (params?: AssetListParams) => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.set('page', String(params.page));
+      if (params?.type) searchParams.set('type', params.type);
+      if (params?.search) searchParams.set('search', params.search);
+      return request<PaginatedResponse<Asset>>(`/assets/?${searchParams}`);
+    },
+    get: (id: number) => request<Asset>(`/assets/${id}/`),
+    create: (data: AssetInput) =>
+      request<Asset>('/assets/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: Partial<AssetInput>) =>
+      request<Asset>(`/assets/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request(`/assets/${id}/`, { method: 'DELETE' }),
+    updateUsage: (id: number, usedIn: string[]) =>
+      request<Asset>(`/assets/${id}/update-usage/`, {
+        method: 'PUT',
+        body: JSON.stringify({ used_in: usedIn }),
+      }),
+    getStats: () => request<AssetStats>('/assets/stats/'),
+  },
 };
 
 // ============================================
@@ -522,14 +634,20 @@ export interface Fragrance {
   sku: string;
   type: 'perfume' | 'attar';
   concentration?: string;
+  description?: string;
+  short_description?: string;
   price: number;
   discount: number;
+  final_price: number;
   stock_quantity: number;
   min_order_threshold: number;
   watching_count: number;
   status: 'draft' | 'active' | 'discontinued';
   is_active: boolean;
+  cover_image?: string;
+  image_count?: number;
   images: ProductImage[];
+  created_at: string;
 }
 
 export interface FragranceInput {
@@ -630,4 +748,137 @@ export interface BroadcastInput {
   title: string;
   message: string;
   type?: 'promo' | 'system';
+}
+
+// Banner types
+export interface Banner {
+  id: number;
+  image: string;
+  image_url: string;
+  link: string;
+  alt_text: string;
+  order: number;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MarqueeSetting {
+  id: number;
+  text: string;
+  link: string;
+  speed: number;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MarqueeSettingInput {
+  text: string;
+  link?: string;
+  speed?: number;
+  enabled?: boolean;
+}
+
+// Inventory types
+export interface InventoryItem {
+  id: number;
+  fragrance?: number;
+  product?: number;
+  sku: string;
+  size: string;
+  product_name: string;
+  product_image?: string;
+  current_stock: number;
+  reorder_level: number;
+  cost_per_unit: number;
+  supplier_name: string;
+  location: string;
+  stock_status: 'healthy' | 'low_stock' | 'out_of_stock';
+  last_restocked?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InventoryItemInput {
+  fragrance?: number;
+  product?: number;
+  sku: string;
+  size?: string;
+  current_stock?: number;
+  reorder_level?: number;
+  cost_per_unit?: number;
+  supplier_name?: string;
+  location?: string;
+}
+
+export interface InventoryListParams {
+  page?: number;
+  search?: string;
+  stock_filter?: 'all' | 'low' | 'out' | 'healthy';
+}
+
+export interface StockAdjustment {
+  type: 'in' | 'out' | 'adjustment';
+  quantity: number;
+  reason?: string;
+}
+
+export interface StockMovement {
+  id: number;
+  inventory: number;
+  type: 'in' | 'out' | 'adjustment';
+  quantity: number;
+  reason: string;
+  performed_by: string;
+  created_at: string;
+}
+
+export interface InventoryStats {
+  total_units: number;
+  total_value: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
+  total_items: number;
+}
+
+// Asset types
+export interface Asset {
+  id: number;
+  name: string;
+  type: 'image' | 'video';
+  storage_path: string;
+  url: string;
+  size_bytes: number;
+  size_formatted: string;
+  mime_type: string;
+  used_in: string[];
+  uploaded_by?: number;
+  uploader_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetInput {
+  name: string;
+  type: 'image' | 'video';
+  storage_path: string;
+  url: string;
+  size_bytes?: number;
+  mime_type?: string;
+  used_in?: string[];
+}
+
+export interface AssetListParams {
+  page?: number;
+  type?: 'image' | 'video';
+  search?: string;
+}
+
+export interface AssetStats {
+  total_count: number;
+  image_count: number;
+  video_count: number;
+  total_size_bytes: number;
+  unused_count: number;
 }

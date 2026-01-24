@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useSearchParams, useLocation } from "react-router-dom";
-import { SlidersHorizontal, ChevronDown, X, Heart } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, X, Heart, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TrustBadges from "@/components/TrustBadges";
-import { allProducts, categories, genderOptions, Product } from "@/data/products";
+import { allProducts as staticProducts, categories, genderOptions, Product } from "@/data/products";
 import { useWishlist } from "@/context/WishlistContext";
+import { adminAPI, Fragrance } from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -23,10 +24,41 @@ import {
 type SortOption = "featured" | "price-low" | "price-high" | "newest" | "bestseller";
 type ViewSection = "all" | "by-type" | "by-gender" | "bestseller" | "recently-viewed";
 
+// Convert fragrance from API to Product format for display
+const fragranceToProduct = (fragrance: Fragrance): Product => ({
+  id: `fragrance-${fragrance.id}`,
+  name: fragrance.name,
+  slug: `fragrance-${fragrance.sku.toLowerCase()}`,
+  price: fragrance.final_price || fragrance.price,
+  originalPrice: fragrance.discount > 0 ? fragrance.price : undefined,
+  image: fragrance.cover_image || (fragrance.images?.[0]?.image) || "/placeholder.svg",
+  images: fragrance.images?.map(img => img.image) || [],
+  category: fragrance.concentration || "perfume",
+  gender: "unisex",
+  tag: fragrance.status === 'active' && fragrance.watching_count > 10 ? "Bestseller" : undefined,
+  notes: {
+    top: [],
+    middle: [],
+    base: [],
+  },
+  description: fragrance.description || fragrance.short_description || "",
+  occasion: "Everyday",
+  concentration: {
+    sillage: 3,
+    projection: 3,
+    longevity: 4,
+  },
+});
+
 const AllProducts = () => {
   const { toggleItem, isInWishlist } = useWishlist();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  
+  // API state
+  const [apiProducts, setApiProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   
   // Get initial gender from URL params or location state
   const genderFromUrl = searchParams.get('gender');
@@ -42,6 +74,28 @@ const AllProducts = () => {
   );
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Fetch fragrances from API
+  useEffect(() => {
+    const fetchFragrances = async () => {
+      try {
+        setIsLoading(true);
+        setApiError(null);
+        const response = await adminAPI.fragrances.list({ status: 'active' });
+        const convertedProducts = response.results.map(fragranceToProduct);
+        setApiProducts(convertedProducts);
+      } catch (error) {
+        console.error('Failed to fetch fragrances:', error);
+        setApiError('Failed to load products from server. Showing cached products.');
+        // Fall back to static products
+        setApiProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFragrances();
+  }, []);
 
   // Load recently viewed from localStorage
   useEffect(() => {
@@ -62,6 +116,14 @@ const AllProducts = () => {
       setViewSection("by-type");
     }
   }, [genderFromUrl, categoryFromUrl]);
+
+  // Combine API products with static products (API products take priority)
+  const allProducts = useMemo(() => {
+    if (apiProducts.length > 0) {
+      return [...apiProducts, ...staticProducts];
+    }
+    return staticProducts;
+  }, [apiProducts]);
 
   const filteredProducts = useMemo(() => {
     let products = [...allProducts];
@@ -104,7 +166,7 @@ const AllProducts = () => {
     }
 
     return products;
-  }, [selectedCategory, selectedGender, priceRange, sortBy, viewSection, recentlyViewed]);
+  }, [selectedCategory, selectedGender, priceRange, sortBy, viewSection, recentlyViewed, allProducts]);
 
   const clearFilters = () => {
     setSelectedCategory(null);
@@ -184,6 +246,21 @@ const AllProducts = () => {
       <Header />
       <main className="pt-20 md:pt-24">
         <div className="container-wide px-4 py-8">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Loading products...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {apiError && (
+            <div className="text-center py-4 mb-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-amber-700 text-sm">{apiError}</p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="font-serif text-3xl md:text-4xl font-semibold mb-4">

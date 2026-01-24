@@ -12,6 +12,14 @@ from .review_serializer import ReviewSerializer
 from .payment_serializer import PaymentSerializer
 from .notification_serializer import NotificationSerializer
 from .settings_serializer import BrandSettingsSerializer
+from .banner_serializer import BannerSerializer, MarqueeSettingSerializer
+from .inventory_serializer import (
+    InventorySerializer, 
+    InventoryListSerializer, 
+    StockMovementSerializer,
+    StockAdjustmentSerializer
+)
+from .asset_serializer import AssetSerializer, AssetCreateSerializer, AssetUpdateUsageSerializer
 
 __all__ = [
     'UserSerializer', 'UserCreateSerializer', 'OTPSerializer', 'LoginSerializer',
@@ -25,4 +33,7 @@ __all__ = [
     'PaymentSerializer',
     'NotificationSerializer',
     'BrandSettingsSerializer',
+    'BannerSerializer', 'MarqueeSettingSerializer',
+    'InventorySerializer', 'InventoryListSerializer', 'StockMovementSerializer', 'StockAdjustmentSerializer',
+    'AssetSerializer', 'AssetCreateSerializer', 'AssetUpdateUsageSerializer',
 ]
