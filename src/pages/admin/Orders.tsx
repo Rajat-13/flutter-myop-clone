@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   Download,
   Eye,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
+  Loader2,
+  Package,
+  RefreshCw,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,79 +32,72 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const orders = [
-  {
-    id: "#ORD-2024001",
-    customer: "Rahul Sharma",
-    email: "rahul.sharma@email.com",
-    date: "2024-01-15",
-    status: "Delivered",
-    total: "₹2,499",
-    items: [
-      { name: "Custom Perfume - Sandalwood Musk", size: "50ml", price: "₹2,499", notes: ["Sandalwood", "Musk", "Amber"] },
-    ],
-  },
-  {
-    id: "#ORD-2024002",
-    customer: "Priya Mehta",
-    email: "priya.mehta@email.com",
-    date: "2024-01-15",
-    status: "Shipped",
-    total: "₹899",
-    items: [{ name: "Flora Bliss", size: "50ml", price: "₹899" }],
-  },
-  {
-    id: "#ORD-2024003",
-    customer: "Amit Kumar",
-    email: "amit.kumar@email.com",
-    date: "2024-01-14",
-    status: "Processing",
-    total: "₹3,199",
-    items: [
-      { name: "Custom Perfume - Oud Royal", size: "100ml", price: "₹3,199", notes: ["Oud", "Rose", "Saffron"] },
-    ],
-  },
-  {
-    id: "#ORD-2024004",
-    customer: "Neha Reddy",
-    email: "neha.reddy@email.com",
-    date: "2024-01-14",
-    status: "Pending",
-    total: "₹1,999",
-    items: [{ name: "Sandal Veer", size: "100ml", price: "₹1,999" }],
-  },
-  {
-    id: "#ORD-2024005",
-    customer: "Vikram Singh",
-    email: "vikram.singh@email.com",
-    date: "2024-01-13",
-    status: "Cancelled",
-    total: "₹599",
-    items: [{ name: "Ocean Breeze", size: "8ml", price: "₹599" }],
-  },
-];
+import { toast } from "sonner";
+import { adminAPI, Order } from "@/lib/api";
 
 const statusColors: Record<string, string> = {
-  Delivered: "bg-emerald-100 text-emerald-700",
-  Shipped: "bg-blue-100 text-blue-700",
-  Processing: "bg-amber-100 text-amber-700",
-  Pending: "bg-gray-100 text-gray-700",
-  Cancelled: "bg-red-100 text-red-700",
+  delivered: "bg-emerald-100 text-emerald-700",
+  shipped: "bg-blue-100 text-blue-700",
+  processing: "bg-amber-100 text-amber-700",
+  pending: "bg-gray-100 text-gray-700",
+  confirmed: "bg-blue-100 text-blue-700",
+  cancelled: "bg-red-100 text-red-700",
+  refunded: "bg-purple-100 text-purple-700",
 };
 
 const Orders = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await adminAPI.orders.list(currentPage);
+      setOrders(response.results);
+      setTotalCount(response.count);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      toast.error("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [currentPage]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status.toLowerCase() === statusFilter;
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleStatusUpdate = async (orderId: number, newStatus: string) => {
+    try {
+      await adminAPI.orders.updateStatus(orderId, newStatus);
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as Order['status'] } : o));
+      toast.success("Order status updated");
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      toast.error("Failed to update order status");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -112,10 +107,16 @@ const Orders = () => {
           <h1 className="text-2xl lg:text-3xl font-serif font-semibold text-charcoal">Orders</h1>
           <p className="text-muted-foreground">Manage and track all customer orders</p>
         </div>
-        <Button className="w-fit">
-          <Download className="w-4 h-4 mr-2" />
-          Export Orders
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchOrders}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Button className="w-fit">
+            <Download className="w-4 h-4 mr-2" />
+            Export Orders
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -138,6 +139,7 @@ const Orders = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="shipped">Shipped</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
@@ -151,71 +153,98 @@ const Orders = () => {
       {/* Orders Table */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Order ID</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Customer</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Date</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Total</th>
-                  <th className="text-right py-4 px-4 text-sm font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                    <td className="py-4 px-4 text-sm font-medium">{order.id}</td>
-                    <td className="py-4 px-4">
-                      <div>
-                        <p className="text-sm font-medium">{order.customer}</p>
-                        <p className="text-xs text-muted-foreground">{order.email}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-muted-foreground hidden md:table-cell">{order.date}</td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[order.status]}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm font-semibold">{order.total}</td>
-                    <td className="py-4 px-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>Update Status</DropdownMenuItem>
-                          <DropdownMenuItem>Generate Invoice</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
+          {filteredOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Package className="w-12 h-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium">No orders found</p>
+              <p className="text-sm">Orders will appear here once customers place them</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Order ID</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Customer</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Date</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-muted-foreground">Total</th>
+                    <th className="text-right py-4 px-4 text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((order) => (
+                    <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="py-4 px-4 text-sm font-medium">{order.order_number}</td>
+                      <td className="py-4 px-4">
+                        <div>
+                          <p className="text-sm font-medium">{order.customer_name || order.shipping_name}</p>
+                          <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-muted-foreground hidden md:table-cell">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full capitalize ${statusColors[order.status] || 'bg-gray-100 text-gray-700'}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm font-semibold">₹{Number(order.total_amount).toLocaleString()}</td>
+                      <td className="py-4 px-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'processing')}>
+                              Mark Processing
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'shipped')}>
+                              Mark Shipped
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'delivered')}>
+                              Mark Delivered
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Pagination */}
           <div className="flex items-center justify-between p-4 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Showing {filteredOrders.length} of {orders.length} orders
+              Showing {filteredOrders.length} of {totalCount} orders
             </p>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button variant="outline" size="sm">
-                1
+                {currentPage}
               </Button>
-              <Button variant="outline" size="sm" disabled>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage * 10 >= totalCount}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -225,57 +254,101 @@ const Orders = () => {
 
       {/* Order Detail Modal */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Details - {selectedOrder?.id}</DialogTitle>
+            <DialogTitle>Order Details - {selectedOrder?.order_number}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Customer</p>
-                  <p className="font-medium">{selectedOrder.customer}</p>
+                  <p className="font-medium">{selectedOrder.customer_name || selectedOrder.shipping_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{selectedOrder.email}</p>
+                  <p className="text-sm text-muted-foreground">Phone</p>
+                  <p className="font-medium">{selectedOrder.customer_phone || selectedOrder.shipping_phone}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-medium">{selectedOrder.date}</p>
+                  <p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[selectedOrder.status]}`}>
+                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full capitalize ${statusColors[selectedOrder.status] || 'bg-gray-100 text-gray-700'}`}>
                     {selectedOrder.status}
                   </span>
                 </div>
               </div>
 
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Shipping Address</p>
+                <p className="font-medium">{selectedOrder.shipping_name}</p>
+                <p className="text-sm">{selectedOrder.shipping_address}</p>
+                <p className="text-sm">{selectedOrder.shipping_city}, {selectedOrder.shipping_state} - {selectedOrder.shipping_pincode}</p>
+              </div>
+
               <div className="border-t pt-4">
                 <p className="text-sm font-medium mb-2">Order Items</p>
-                {selectedOrder.items.map((item, index) => (
+                {selectedOrder.items?.map((item, index) => (
                   <div key={index} className="flex justify-between items-start py-2 border-b last:border-0">
                     <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">Size: {item.size}</p>
-                      {item.notes && (
-                        <p className="text-sm text-muted-foreground">Notes: {item.notes.join(", ")}</p>
-                      )}
+                      <p className="font-medium">{item.product_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        SKU: {item.product_sku} {item.size && `| Size: ${item.size}`} | Qty: {item.quantity}
+                      </p>
                     </div>
-                    <p className="font-semibold">{item.price}</p>
+                    <p className="font-semibold">₹{Number(item.total_price).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t pt-4 flex justify-between">
-                <p className="font-semibold">Total</p>
-                <p className="font-bold text-lg">{selectedOrder.total}</p>
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>₹{Number(selectedOrder.subtotal).toLocaleString()}</span>
+                </div>
+                {Number(selectedOrder.discount_amount) > 0 && (
+                  <div className="flex justify-between text-sm text-red-600">
+                    <span>Discount</span>
+                    <span>-₹{Number(selectedOrder.discount_amount).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span>Shipping</span>
+                  <span>₹{Number(selectedOrder.shipping_amount).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Tax</span>
+                  <span>₹{Number(selectedOrder.tax_amount).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-bold pt-2 border-t">
+                  <span>Total</span>
+                  <span>₹{Number(selectedOrder.total_amount).toLocaleString()}</span>
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1">Generate Invoice</Button>
-                <Button className="flex-1">Update Status</Button>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSelectedOrder(null)}>Close</Button>
+                <Select
+                  value={selectedOrder.status}
+                  onValueChange={(value) => {
+                    handleStatusUpdate(selectedOrder.id, value);
+                    setSelectedOrder({ ...selectedOrder, status: value as Order['status'] });
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Update Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
