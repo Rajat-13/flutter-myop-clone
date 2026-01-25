@@ -1,15 +1,15 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { X, ChevronUp, ChevronDown, Lock, CornerDownLeft } from "lucide-react";
+import { ChevronUp, ChevronDown, Lock, CornerDownLeft, Gift } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useNavigate } from "react-router-dom";
 
 const CartDrawer = () => {
   const {
-    items,
+    itemsWithDiscount,
     removeItem,
     updateQuantity,
-    total,
+    discountInfo,
     itemCount,
     isCartOpen,
     setIsCartOpen,
@@ -18,8 +18,8 @@ const CartDrawer = () => {
   const navigate = useNavigate();
 
   const freeShippingThreshold = 1500;
-  const progress = Math.min((total / freeShippingThreshold) * 100, 100);
-  const isFreeShipping = total >= freeShippingThreshold;
+  const progress = Math.min((discountInfo.totalPayable / freeShippingThreshold) * 100, 100);
+  const isFreeShipping = discountInfo.totalPayable >= freeShippingThreshold;
 
   const handleCheckout = () => {
     setIsCartOpen(false);
@@ -53,7 +53,7 @@ const CartDrawer = () => {
           <p className="text-sm text-charcoal mb-2">
             {isFreeShipping
               ? "You are eligible for free shipping."
-              : `Add ₹${(freeShippingThreshold - total).toLocaleString()} more for free shipping.`}
+              : `Add ₹${(freeShippingThreshold - discountInfo.totalPayable).toLocaleString()} more for free shipping.`}
           </p>
           <div className="w-full bg-gray-200 h-1 rounded-full overflow-hidden">
             <div
@@ -63,9 +63,24 @@ const CartDrawer = () => {
           </div>
         </div>
 
+        {/* Buy 2 Get 2 Free Banner */}
+        {itemCount >= 1 && (
+          <div className="px-4 py-3 bg-green-50 border-b border-green-200">
+            <div className="flex items-center gap-2 text-green-700">
+              <Gift className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                {itemCount < 3 
+                  ? `Add ${3 - itemCount} more item${3 - itemCount > 1 ? 's' : ''} to get FREE items!`
+                  : `🎉 You got ${discountInfo.freeItemsCount} FREE item${discountInfo.freeItemsCount > 1 ? 's' : ''}!`
+                }
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Cart Items */}
         <div className="flex-1 overflow-y-auto">
-          {items.length === 0 ? (
+          {itemsWithDiscount.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <p className="text-muted-foreground mb-4">Your cart is empty</p>
               <Button
@@ -77,24 +92,42 @@ const CartDrawer = () => {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {items.map((item) => (
+              {itemsWithDiscount.map((item) => (
                 <div key={`${item.id}-${item.size}`} className="p-4 flex gap-4">
                   {/* Product Image */}
-                  <div className="w-20 h-20 bg-cream flex-shrink-0 overflow-hidden">
+                  <div className="w-20 h-20 bg-cream flex-shrink-0 overflow-hidden relative">
                     <img
                       src={item.image}
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />
+                    {item.freeQuantity > 0 && (
+                      <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-1 py-0.5 font-medium">
+                        FREE
+                      </div>
+                    )}
                   </div>
 
                   {/* Product Details */}
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-charcoal truncate">{item.name}</h4>
                     <p className="text-sm text-muted-foreground">{item.size}</p>
-                    <p className="text-sm font-medium text-charcoal mt-1">
-                      Rs. {item.price.toLocaleString()}.00
-                    </p>
+                    
+                    {/* Price breakdown */}
+                    <div className="mt-1 space-y-0.5">
+                      {item.paidQuantity > 0 && (
+                        <p className="text-sm font-medium text-charcoal">
+                          {item.paidQuantity} × Rs. {item.price.toLocaleString()}.00
+                        </p>
+                      )}
+                      {item.freeQuantity > 0 && (
+                        <p className="text-sm text-green-600 flex items-center gap-1">
+                          <span>{item.freeQuantity} × </span>
+                          <span className="line-through text-muted-foreground">Rs. {item.price.toLocaleString()}.00</span>
+                          <span className="font-medium">FREE</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Quantity Controls */}
@@ -136,8 +169,29 @@ const CartDrawer = () => {
         </div>
 
         {/* Footer */}
-        {items.length > 0 && (
+        {itemsWithDiscount.length > 0 && (
           <div className="border-t border-border p-4 space-y-4 bg-white">
+            {/* Discount Summary */}
+            {discountInfo.totalDiscount > 0 && (
+              <div className="bg-green-50 p-3 rounded-lg space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Original Total</span>
+                  <span className="line-through text-muted-foreground">
+                    Rs. {discountInfo.totalOriginal.toLocaleString()}.00
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-green-600 font-medium flex items-center gap-1">
+                    <Gift className="w-4 h-4" />
+                    Discount ({discountInfo.discountPercentage}% OFF)
+                  </span>
+                  <span className="text-green-600 font-medium">
+                    - Rs. {discountInfo.totalDiscount.toLocaleString()}.00
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Subtotal */}
             <div className="flex items-center justify-between">
               <div>
@@ -150,9 +204,9 @@ const CartDrawer = () => {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Subtotal</p>
+                <p className="text-sm text-muted-foreground">You Pay</p>
                 <p className="text-xl font-semibold text-charcoal">
-                  Rs. {total.toLocaleString()}.00
+                  Rs. {discountInfo.totalPayable.toLocaleString()}.00
                 </p>
               </div>
             </div>
