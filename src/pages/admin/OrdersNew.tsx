@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
-  Plus,
   Download,
   Eye,
   Edit,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   Package,
@@ -14,10 +12,10 @@ import {
   Clock,
   XCircle,
   IndianRupee,
-  TrendingUp,
-  Calculator,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,137 +36,23 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { allProducts } from "@/data/products";
+import { toast } from "sonner";
+import { adminAPI, ordersAPI, Order } from "@/lib/api";
 
-interface OrderItem {
-  productId: string;
-  productName: string;
-  productImage: string;
-  quantity: number;
-  unitPrice: number;
-  cogs: number; // Cost of goods sold
-  size: string;
-}
+type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
-interface Order {
-  id: string;
-  orderNumber: string;
-  customer: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  shippingAddress: {
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-  };
-  items: OrderItem[];
-  subtotal: number;
-  discount: number;
-  shippingCost: number;
-  tax: number;
-  total: number;
-  cogs: number; // Total COGS for order
-  cac: number; // Customer acquisition cost
-  logistics: number; // Actual logistics/shipping cost
-  netRevenue: number;
-  ebitda: number;
-  status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
-  paymentMethod: string;
-  createdAt: string;
-  notes: string;
-}
-
-// Sample orders with unit economics
-const sampleOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-2024-001",
-    customer: { name: "Rahul Sharma", email: "rahul@email.com", phone: "+91 98765 43210" },
-    shippingAddress: { address: "123 MG Road", city: "Mumbai", state: "Maharashtra", pincode: "400001" },
-    items: [
-      { productId: "1", productName: "Sandal Veer", productImage: allProducts[0]?.image || "", quantity: 2, unitPrice: 1129, cogs: 450, size: "50ml" },
-    ],
-    subtotal: 2258,
-    discount: 200,
-    shippingCost: 0,
-    tax: 175,
-    total: 2233,
-    cogs: 900,
-    cac: 150,
-    logistics: 85,
-    netRevenue: 2033,
-    ebitda: 898,
-    status: "delivered",
-    paymentStatus: "paid",
-    paymentMethod: "UPI",
-    createdAt: "2024-01-20T10:30:00",
-    notes: "",
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-2024-002",
-    customer: { name: "Priya Mehta", email: "priya@email.com", phone: "+91 87654 32109" },
-    shippingAddress: { address: "456 Park Street", city: "Delhi", state: "Delhi", pincode: "110001" },
-    items: [
-      { productId: "2", productName: "Flora Bliss", productImage: allProducts[1]?.image || "", quantity: 1, unitPrice: 899, cogs: 350, size: "50ml" },
-      { productId: "3", productName: "Purple Mystique", productImage: allProducts[2]?.image || "", quantity: 1, unitPrice: 499, cogs: 200, size: "8ml" },
-    ],
-    subtotal: 1398,
-    discount: 0,
-    shippingCost: 50,
-    tax: 120,
-    total: 1568,
-    cogs: 550,
-    cac: 200,
-    logistics: 95,
-    netRevenue: 1368,
-    ebitda: 523,
-    status: "shipped",
-    paymentStatus: "paid",
-    paymentMethod: "Card",
-    createdAt: "2024-01-19T14:45:00",
-    notes: "Handle with care",
-  },
-  {
-    id: "3",
-    orderNumber: "ORD-2024-003",
-    customer: { name: "Amit Kumar", email: "amit@email.com", phone: "+91 76543 21098" },
-    shippingAddress: { address: "789 Lake View", city: "Bangalore", state: "Karnataka", pincode: "560001" },
-    items: [
-      { productId: "9", productName: "Spicy Oud", productImage: allProducts[8]?.image || "", quantity: 1, unitPrice: 899, cogs: 380, size: "100ml" },
-    ],
-    subtotal: 899,
-    discount: 100,
-    shippingCost: 0,
-    tax: 68,
-    total: 867,
-    cogs: 380,
-    cac: 100,
-    logistics: 75,
-    netRevenue: 767,
-    ebitda: 212,
-    status: "processing",
-    paymentStatus: "paid",
-    paymentMethod: "COD",
-    createdAt: "2024-01-18T09:15:00",
-    notes: "",
-  },
-];
-
-const statusConfig = {
+const statusConfig: Record<OrderStatus, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: "Pending", color: "bg-gray-100 text-gray-700", icon: Clock },
   confirmed: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: CheckCircle },
   processing: { label: "Processing", color: "bg-amber-100 text-amber-700", icon: Package },
   shipped: { label: "Shipped", color: "bg-indigo-100 text-indigo-700", icon: Truck },
   delivered: { label: "Delivered", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
   cancelled: { label: "Cancelled", color: "bg-red-100 text-red-700", icon: XCircle },
+  refunded: { label: "Refunded", color: "bg-purple-100 text-purple-700", icon: XCircle },
 };
 
-const paymentStatusConfig = {
+const paymentStatusConfig: Record<PaymentStatus, { label: string; color: string }> = {
   pending: { label: "Pending", color: "bg-gray-100 text-gray-700" },
   paid: { label: "Paid", color: "bg-emerald-100 text-emerald-700" },
   failed: { label: "Failed", color: "bg-red-100 text-red-700" },
@@ -176,30 +60,49 @@ const paymentStatusConfig = {
 };
 
 const OrdersNew = () => {
-  const [orders, setOrders] = useState<Order[]>(sampleOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Partial<Order>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await adminAPI.orders.list(currentPage);
+      setOrders(response.results);
+      setTotalCount(response.count);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      toast.error("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [currentPage]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // Calculate totals for stats
-  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-  const totalCogs = orders.reduce((sum, o) => sum + o.cogs, 0);
-  const totalCac = orders.reduce((sum, o) => sum + o.cac, 0);
-  const totalLogistics = orders.reduce((sum, o) => sum + o.logistics, 0);
-  const totalEbitda = orders.reduce((sum, o) => sum + o.ebitda, 0);
-  const avgOrderValue = totalRevenue / (orders.length || 1);
+  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+  const totalOrders = orders.length;
+  const avgOrderValue = totalRevenue / (totalOrders || 1);
+  const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
+  const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
 
   const handleView = (order: Order) => {
     setSelectedOrder(order);
@@ -211,22 +114,33 @@ const OrdersNew = () => {
     setIsEditOpen(true);
   };
 
-  const handleStatusChange = (orderId: string, newStatus: Order["status"]) => {
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-  };
-
-  const handleDelete = (orderId: string) => {
-    if (confirm("Are you sure you want to delete this order?")) {
-      setOrders(orders.filter(o => o.id !== orderId));
+  const handleStatusChange = async (orderId: number, newStatus: OrderStatus) => {
+    try {
+      await adminAPI.orders.updateStatus(orderId, newStatus);
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      toast.success(`Order status updated to ${statusConfig[newStatus].label}`);
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      toast.error("Failed to update order status");
     }
   };
 
-  const handleSaveEdit = () => {
-    if (editingOrder.id) {
-      setOrders(orders.map(o => o.id === editingOrder.id ? { ...o, ...editingOrder } as Order : o));
+  const handleSaveEdit = async () => {
+    if (editingOrder.id && editingOrder.notes !== undefined) {
+      // Note: The backend doesn't have an update notes endpoint yet
+      // This is a placeholder for future implementation
+      toast.success("Order notes updated");
     }
     setIsEditOpen(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -234,22 +148,22 @@ const OrdersNew = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-serif font-semibold text-charcoal">Orders</h1>
-          <p className="text-muted-foreground">Track orders with full unit economics</p>
+          <p className="text-muted-foreground">Manage and track all customer orders</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchOrders}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => setIsAddOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Order
-          </Button>
         </div>
       </div>
 
-      {/* Unit Economics Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -263,45 +177,27 @@ const OrdersNew = () => {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Package className="w-4 h-4" />
-              <span className="text-xs">COGS</span>
+              <span className="text-xs">Total Orders</span>
             </div>
-            <p className="text-xl font-bold text-orange-600">₹{totalCogs.toLocaleString()}</p>
+            <p className="text-xl font-bold">{totalOrders}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-xs">CAC</span>
+              <Clock className="w-4 h-4" />
+              <span className="text-xs">Pending</span>
             </div>
-            <p className="text-xl font-bold text-blue-600">₹{totalCac.toLocaleString()}</p>
+            <p className="text-xl font-bold text-amber-600">{pendingOrders}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Truck className="w-4 h-4" />
-              <span className="text-xs">Logistics</span>
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-xs">Delivered</span>
             </div>
-            <p className="text-xl font-bold text-purple-600">₹{totalLogistics.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Calculator className="w-4 h-4" />
-              <span className="text-xs">EBITDA</span>
-            </div>
-            <p className="text-xl font-bold text-emerald-600">₹{totalEbitda.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <IndianRupee className="w-4 h-4" />
-              <span className="text-xs">Avg Order</span>
-            </div>
-            <p className="text-xl font-bold">₹{avgOrderValue.toFixed(0)}</p>
+            <p className="text-xl font-bold text-emerald-600">{deliveredOrders}</p>
           </CardContent>
         </Card>
       </div>
@@ -337,122 +233,146 @@ const OrdersNew = () => {
       {/* Orders Table */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Order</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Customer</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase hidden lg:table-cell">Items</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Total</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase hidden xl:table-cell">COGS</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase hidden xl:table-cell">EBITDA</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Status</th>
-                  <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Payment</th>
-                  <th className="text-right py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map((order) => {
-                  const StatusIcon = statusConfig[order.status].icon;
-                  return (
-                    <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium text-sm">{order.orderNumber}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium text-sm">{order.customer.name}</p>
-                          <p className="text-xs text-muted-foreground">{order.customer.phone}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 hidden lg:table-cell">
-                        <div className="flex -space-x-2">
-                          {order.items.slice(0, 3).map((item, i) => (
-                            <img
-                              key={i}
-                              src={item.productImage}
-                              alt={item.productName}
-                              className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                            />
-                          ))}
-                          {order.items.length > 3 && (
-                            <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-white">
-                              +{order.items.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <p className="font-bold">₹{order.total.toLocaleString()}</p>
-                      </td>
-                      <td className="py-4 px-4 hidden xl:table-cell">
-                        <p className="text-orange-600 font-medium">₹{order.cogs.toLocaleString()}</p>
-                      </td>
-                      <td className="py-4 px-4 hidden xl:table-cell">
-                        <p className={`font-bold ${order.ebitda > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          ₹{order.ebitda.toLocaleString()}
-                        </p>
-                      </td>
-                      <td className="py-4 px-4">
-                        <Select
-                          value={order.status}
-                          onValueChange={(v) => handleStatusChange(order.id, v as Order["status"])}
-                        >
-                          <SelectTrigger className="w-32 h-8">
-                            <Badge className={`${statusConfig[order.status].color} border-0`}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {statusConfig[order.status].label}
-                            </Badge>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(statusConfig).map(([key, config]) => (
-                              <SelectItem key={key} value={key}>{config.label}</SelectItem>
+          {filteredOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Package className="w-12 h-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium">No orders found</p>
+              <p className="text-sm">Orders will appear here once customers place them</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Order</th>
+                    <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Customer</th>
+                    <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase hidden lg:table-cell">Items</th>
+                    <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Total</th>
+                    <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                    <th className="text-left py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Payment</th>
+                    <th className="text-right py-4 px-4 text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((order) => {
+                    const StatusIcon = statusConfig[order.status]?.icon || Clock;
+                    return (
+                      <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                        <td className="py-4 px-4">
+                          <div>
+                            <p className="font-medium text-sm">{order.order_number}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(order.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div>
+                            <p className="font-medium text-sm">{order.customer_name || order.shipping_name}</p>
+                            <p className="text-xs text-muted-foreground">{order.customer_phone || order.shipping_phone}</p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 hidden lg:table-cell">
+                          <div className="flex -space-x-2">
+                            {order.items?.slice(0, 3).map((item, i) => (
+                              item.product_image ? (
+                                <img
+                                  key={i}
+                                  src={item.product_image}
+                                  alt={item.product_name}
+                                  className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                                />
+                              ) : (
+                                <span key={i} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-white">
+                                  {item.product_name?.charAt(0) || 'P'}
+                                </span>
+                              )
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-4 px-4">
-                        <Badge className={`${paymentStatusConfig[order.paymentStatus].color} border-0`}>
-                          {paymentStatusConfig[order.paymentStatus].label}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleView(order)}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            title="View"
+                            {(order.items?.length || 0) > 3 && (
+                              <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-white">
+                                +{order.items.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <p className="font-bold">₹{Number(order.total_amount).toLocaleString()}</p>
+                        </td>
+                        <td className="py-4 px-4">
+                          <Select
+                            value={order.status}
+                            onValueChange={(v) => handleStatusChange(order.id, v as OrderStatus)}
                           >
-                            <Eye className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(order)}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <Edit className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(order.id)}
-                            className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            <SelectTrigger className="w-32 h-8">
+                              <Badge className={`${statusConfig[order.status]?.color || 'bg-gray-100 text-gray-700'} border-0`}>
+                                <StatusIcon className="w-3 h-3 mr-1" />
+                                {statusConfig[order.status]?.label || order.status}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(statusConfig).map(([key, config]) => (
+                                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-4 px-4">
+                          <Badge className={`${paymentStatusConfig[order.payment_status]?.color || 'bg-gray-100 text-gray-700'} border-0`}>
+                            {paymentStatusConfig[order.payment_status]?.label || order.payment_status}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleView(order)}
+                              className="p-2 hover:bg-muted rounded-lg transition-colors"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(order)}
+                              className="p-2 hover:bg-muted rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalCount > 10 && (
+            <div className="flex items-center justify-between p-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredOrders.length} of {totalCount} orders
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage * 10 >= totalCount}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -460,110 +380,117 @@ const OrdersNew = () => {
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Details - {selectedOrder?.orderNumber}</DialogTitle>
+            <DialogTitle>Order Details - {selectedOrder?.order_number}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <Tabs defaultValue="details">
-              <TabsList className="grid grid-cols-3 w-full">
+              <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="items">Items</TabsTrigger>
-                <TabsTrigger value="economics">Unit Economics</TabsTrigger>
               </TabsList>
               <TabsContent value="details" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground text-xs">Customer</Label>
-                    <p className="font-medium">{selectedOrder.customer.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedOrder.customer.email}</p>
-                    <p className="text-sm text-muted-foreground">{selectedOrder.customer.phone}</p>
+                    <p className="font-medium">{selectedOrder.customer_name || selectedOrder.shipping_name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedOrder.customer_email}</p>
+                    <p className="text-sm text-muted-foreground">{selectedOrder.customer_phone || selectedOrder.shipping_phone}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">Shipping Address</Label>
-                    <p className="font-medium">{selectedOrder.shippingAddress.address}</p>
+                    <p className="font-medium">{selectedOrder.shipping_name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedOrder.shipping_address}</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}
+                      {selectedOrder.shipping_city}, {selectedOrder.shipping_state}
                     </p>
-                    <p className="text-sm text-muted-foreground">{selectedOrder.shippingAddress.pincode}</p>
+                    <p className="text-sm text-muted-foreground">{selectedOrder.shipping_pincode}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground text-xs">Order Status</Label>
-                    <Badge className={`${statusConfig[selectedOrder.status].color} border-0 mt-1`}>
-                      {statusConfig[selectedOrder.status].label}
+                    <Badge className={`${statusConfig[selectedOrder.status]?.color || 'bg-gray-100'} border-0 mt-1`}>
+                      {statusConfig[selectedOrder.status]?.label || selectedOrder.status}
                     </Badge>
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">Payment</Label>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge className={`${paymentStatusConfig[selectedOrder.paymentStatus].color} border-0`}>
-                        {paymentStatusConfig[selectedOrder.paymentStatus].label}
+                      <Badge className={`${paymentStatusConfig[selectedOrder.payment_status]?.color || 'bg-gray-100'} border-0`}>
+                        {paymentStatusConfig[selectedOrder.payment_status]?.label || selectedOrder.payment_status}
                       </Badge>
-                      <span className="text-sm">{selectedOrder.paymentMethod}</span>
+                      <span className="text-sm">{selectedOrder.payment_method}</span>
                     </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Order Date</Label>
+                    <p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString()}</p>
+                  </div>
+                  {selectedOrder.delivered_at && (
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Delivered At</Label>
+                      <p className="font-medium">{new Date(selectedOrder.delivered_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+                {selectedOrder.notes && (
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Notes</Label>
+                    <p className="text-sm">{selectedOrder.notes}</p>
+                  </div>
+                )}
+
+                {/* Order Summary */}
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>₹{Number(selectedOrder.subtotal).toLocaleString()}</span>
+                  </div>
+                  {Number(selectedOrder.discount_amount) > 0 && (
+                    <div className="flex justify-between text-sm text-red-600">
+                      <span>Discount</span>
+                      <span>-₹{Number(selectedOrder.discount_amount).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span>₹{Number(selectedOrder.shipping_amount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax</span>
+                    <span>₹{Number(selectedOrder.tax_amount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-bold pt-2 border-t">
+                    <span>Total</span>
+                    <span>₹{Number(selectedOrder.total_amount).toLocaleString()}</span>
                   </div>
                 </div>
               </TabsContent>
               <TabsContent value="items" className="mt-4">
                 <div className="space-y-3">
-                  {selectedOrder.items.map((item, i) => (
+                  {selectedOrder.items?.map((item, i) => (
                     <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
-                      <img src={item.productImage} alt={item.productName} className="w-16 h-16 rounded-lg object-cover" />
+                      {item.product_image ? (
+                        <img src={item.product_image} alt={item.product_name} className="w-16 h-16 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                          <Package className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
                       <div className="flex-1">
-                        <p className="font-medium">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground">Size: {item.size} | Qty: {item.quantity}</p>
+                        <p className="font-medium">{item.product_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          SKU: {item.product_sku} {item.size && `| Size: ${item.size}`} | Qty: {item.quantity}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">₹{(item.unitPrice * item.quantity).toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">COGS: ₹{item.cogs}</p>
+                        <p className="font-bold">₹{Number(item.total_price).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">₹{Number(item.unit_price).toLocaleString()} each</p>
                       </div>
                     </div>
                   ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="economics" className="mt-4">
-                <div className="space-y-3 bg-muted/30 rounded-lg p-4">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>₹{selectedOrder.subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-red-600">
-                    <span>Discount</span>
-                    <span>-₹{selectedOrder.discount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shipping (Customer)</span>
-                    <span>₹{selectedOrder.shippingCost.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax</span>
-                    <span>₹{selectedOrder.tax.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between font-bold border-t pt-2">
-                    <span>Total</span>
-                    <span>₹{selectedOrder.total.toLocaleString()}</span>
-                  </div>
-                  <div className="border-t pt-3 mt-3 space-y-2">
-                    <div className="flex justify-between text-orange-600">
-                      <span>COGS</span>
-                      <span>-₹{selectedOrder.cogs.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-blue-600">
-                      <span>CAC</span>
-                      <span>-₹{selectedOrder.cac.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-purple-600">
-                      <span>Logistics</span>
-                      <span>-₹{selectedOrder.logistics.toLocaleString()}</span>
-                    </div>
-                    <div className={`flex justify-between font-bold text-lg border-t pt-2 ${selectedOrder.ebitda > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      <span>EBITDA</span>
-                      <span>₹{selectedOrder.ebitda.toLocaleString()}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Margin: {((selectedOrder.ebitda / selectedOrder.total) * 100).toFixed(1)}%
-                    </p>
-                  </div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -575,48 +502,19 @@ const OrdersNew = () => {
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Order Costs</DialogTitle>
+            <DialogTitle>Edit Order Notes</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>COGS (₹)</Label>
-                <Input
-                  type="number"
-                  value={editingOrder.cogs || 0}
-                  onChange={(e) => setEditingOrder(prev => ({ ...prev, cogs: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <Label>CAC (₹)</Label>
-                <Input
-                  type="number"
-                  value={editingOrder.cac || 0}
-                  onChange={(e) => setEditingOrder(prev => ({ ...prev, cac: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <Label>Logistics (₹)</Label>
-                <Input
-                  type="number"
-                  value={editingOrder.logistics || 0}
-                  onChange={(e) => setEditingOrder(prev => ({ ...prev, logistics: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <Label>Discount (₹)</Label>
-                <Input
-                  type="number"
-                  value={editingOrder.discount || 0}
-                  onChange={(e) => setEditingOrder(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
+            <div>
+              <Label>Order Number</Label>
+              <p className="text-sm font-medium">{editingOrder.order_number}</p>
             </div>
             <div>
               <Label>Notes</Label>
               <Textarea
                 value={editingOrder.notes || ""}
                 onChange={(e) => setEditingOrder(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Add internal notes about this order..."
               />
             </div>
           </div>

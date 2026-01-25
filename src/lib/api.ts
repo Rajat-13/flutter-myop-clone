@@ -589,20 +589,43 @@ export interface AddressInput {
 export interface Order {
   id: number;
   order_number: string;
-  status: string;
-  payment_status: string;
-  total_amount: number;
-  items: OrderItem[];
+  user?: number;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  shipping_name: string;
+  shipping_phone: string;
   shipping_address: string;
+  shipping_city: string;
+  shipping_state: string;
+  shipping_pincode: string;
+  subtotal: number;
+  discount_amount: number;
+  shipping_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_method: string;
+  notes?: string;
+  items: OrderItem[];
+  items_count?: number;
   created_at: string;
+  updated_at?: string;
+  delivered_at?: string | null;
 }
 
 export interface OrderItem {
   id: number;
+  product?: number;
   product_name: string;
+  product_sku: string;
+  product_image?: string;
   quantity: number;
   unit_price: number;
+  discount: number;
   total_price: number;
+  size?: string;
 }
 
 export interface Review {
