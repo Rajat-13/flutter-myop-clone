@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import TrustBadges from "@/components/TrustBadges";
 import { allProducts as staticProducts, categories, genderOptions, Product } from "@/data/products";
 import { useWishlist } from "@/context/WishlistContext";
-import { adminAPI, Fragrance } from "@/lib/api";
+import { fragrancesAPI, Fragrance } from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -24,22 +24,29 @@ import {
 type SortOption = "featured" | "price-low" | "price-high" | "newest" | "bestseller";
 type ViewSection = "all" | "by-type" | "by-gender" | "bestseller" | "recently-viewed";
 
+// Map API gender to Product gender format
+const mapGender = (gender: string): "for-him" | "for-her" | "unisex" => {
+  if (gender === 'men') return 'for-him';
+  if (gender === 'women') return 'for-her';
+  return 'unisex';
+};
+
 // Convert fragrance from API to Product format for display
 const fragranceToProduct = (fragrance: Fragrance): Product => ({
   id: `fragrance-${fragrance.id}`,
   name: fragrance.name,
-  slug: `fragrance-${fragrance.sku.toLowerCase()}`,
+  slug: fragrance.sku?.toLowerCase() || `fragrance-${fragrance.id}`,
   price: fragrance.final_price || fragrance.price,
   originalPrice: fragrance.discount > 0 ? fragrance.price : undefined,
   image: fragrance.cover_image || (fragrance.images?.[0]?.image) || "/placeholder.svg",
   images: fragrance.images?.map(img => img.image) || [],
-  category: fragrance.concentration || "perfume",
-  gender: "unisex",
-  tag: fragrance.status === 'active' && fragrance.watching_count > 10 ? "Bestseller" : undefined,
+  category: fragrance.category || fragrance.concentration || "perfume",
+  gender: mapGender(fragrance.gender || 'unisex'),
+  tag: fragrance.is_bestseller ? "Bestseller" : fragrance.discount > 0 ? "Sale" : undefined,
   notes: {
-    top: [],
-    middle: [],
-    base: [],
+    top: fragrance.top_notes || [],
+    middle: fragrance.middle_notes || [],
+    base: fragrance.base_notes || [],
   },
   description: fragrance.description || fragrance.short_description || "",
   occasion: "Everyday",
@@ -81,8 +88,8 @@ const AllProducts = () => {
       try {
         setIsLoading(true);
         setApiError(null);
-        const response = await adminAPI.fragrances.list({ status: 'active' });
-        const convertedProducts = response.results.map(fragranceToProduct);
+        const fragrances = await fragrancesAPI.list();
+        const convertedProducts = fragrances.map(fragranceToProduct);
         setApiProducts(convertedProducts);
       } catch (error) {
         console.error('Failed to fetch fragrances:', error);

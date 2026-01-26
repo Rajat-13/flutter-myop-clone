@@ -39,11 +39,12 @@ class FragranceListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fragrance
         fields = [
-            'id', 'name', 'sku', 'type', 'concentration',
+            'id', 'name', 'sku', 'slug', 'type', 'concentration', 'gender', 'category',
             'price', 'discount', 'final_price',
             'stock_quantity', 'min_order_threshold', 'watching_count',
-            'status', 'is_active', 'cover_image', 'image_count',
-            'created_at'
+            'status', 'is_active', 'is_bestseller', 'cover_image', 'image_count',
+            'top_notes', 'middle_notes', 'base_notes',
+            'created_at', 'updated_at'
         ]
 
     def get_cover_image(self, obj):
@@ -66,11 +67,12 @@ class FragranceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fragrance
         fields = [
-            'id', 'name', 'sku', 'type', 'concentration',
+            'id', 'name', 'sku', 'slug', 'type', 'concentration', 'gender', 'category',
             'description', 'short_description',
             'price', 'discount', 'final_price',
             'stock_quantity', 'min_order_threshold', 'watching_count',
-            'status', 'is_active',
+            'status', 'is_active', 'is_bestseller',
+            'top_notes', 'middle_notes', 'base_notes',
             'images', 'notes',
             'created_at', 'updated_at'
         ]

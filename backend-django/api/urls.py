@@ -183,7 +183,8 @@ from .views.product_views import (
     ProductViewSet, BestsellersView, ProductSearchView
 )
 from .views.fragrance_views import (
-    FragranceViewSet, FragranceImageUploadView, FragranceImageDeleteView
+    FragranceViewSet, FragranceImageUploadView, FragranceImageDeleteView,
+    PublicFragrancesView, FragranceBestsellersView
 )
 from .views.ingredient_views import IngredientViewSet
 from .views.order_views import OrderViewSet, AdminOrderViewSet
@@ -240,9 +241,11 @@ urlpatterns = [
     path('products/bestsellers/', BestsellersView.as_view(), name='bestsellers'),
     path('products/search/', ProductSearchView.as_view(), name='product-search'),
     
-    # ===== Fragrances (Admin) =====
+    # ===== Fragrances (Admin + Public) =====
     path('fragrances/<int:pk>/images/', FragranceImageUploadView.as_view(), name='fragrance-image-upload'),
     path('fragrances/<int:pk>/images/<int:img_id>/', FragranceImageDeleteView.as_view(), name='fragrance-image-delete'),
+    path('fragrances/public/', PublicFragrancesView.as_view(), name='public-fragrances'),
+    path('fragrances/bestsellers/', FragranceBestsellersView.as_view(), name='fragrance-bestsellers'),
     
     # ===== Banners =====
     path('banners/active/', PublicBannersView.as_view(), name='active-banners'),

@@ -151,6 +151,28 @@ export const productsAPI = {
 };
 
 // ============================================
+// FRAGRANCES PUBLIC API
+// ============================================
+export const fragrancesAPI = {
+  list: (params?: FragrancePublicParams) => {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.gender) searchParams.set('gender', params.gender);
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.is_bestseller) searchParams.set('is_bestseller', 'true');
+    
+    return request<Fragrance[]>(`/fragrances/public/?${searchParams}`);
+  },
+
+  get: (id: number) => request<Fragrance>(`/fragrances/${id}/`),
+
+  bestsellers: (type?: 'perfume' | 'attar') => {
+    const params = type ? `?type=${type}` : '';
+    return request<Fragrance[]>(`/fragrances/bestsellers/${params}`);
+  },
+};
+
+// ============================================
 // CART API
 // ============================================
 export const cartAPI = {
@@ -259,6 +281,8 @@ export const adminAPI = {
       if (params?.type) searchParams.set('type', params.type);
       if (params?.status) searchParams.set('status', params.status);
       if (params?.search) searchParams.set('search', params.search);
+      if (params?.is_active !== undefined) searchParams.set('is_active', String(params.is_active));
+      if (params?.is_bestseller !== undefined) searchParams.set('is_bestseller', String(params.is_bestseller));
       
       return request<PaginatedResponse<Fragrance>>(`/fragrances/?${searchParams}`);
     },
@@ -275,6 +299,20 @@ export const adminAPI = {
       }),
     delete: (id: number) =>
       request(`/fragrances/${id}/`, { method: 'DELETE' }),
+    // Image management
+    uploadImages: (id: number, images: File[], isCover: boolean = false) => {
+      const formData = new FormData();
+      images.forEach(img => formData.append('images', img));
+      formData.append('is_cover', String(isCover));
+      
+      return fetch(`${API_BASE_URL}/fragrances/${id}/images/`, {
+        method: 'POST',
+        headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+        body: formData,
+      }).then(res => res.json());
+    },
+    deleteImage: (fragranceId: number, imageId: number) =>
+      request(`/fragrances/${fragranceId}/images/${imageId}/`, { method: 'DELETE' }),
   },
 
   // Ingredients
@@ -667,10 +705,17 @@ export interface Fragrance {
   watching_count: number;
   status: 'draft' | 'active' | 'discontinued';
   is_active: boolean;
+  is_bestseller: boolean;
+  gender: 'men' | 'women' | 'unisex';
   cover_image?: string;
   image_count?: number;
   images: ProductImage[];
+  top_notes?: string[];
+  middle_notes?: string[];
+  base_notes?: string[];
+  category?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface FragranceInput {
@@ -679,11 +724,20 @@ export interface FragranceInput {
   type: 'perfume' | 'attar';
   concentration?: string;
   description?: string;
+  short_description?: string;
   price: number;
   discount?: number;
   stock_quantity?: number;
   min_order_threshold?: number;
+  watching_count?: number;
   status?: string;
+  is_active?: boolean;
+  is_bestseller?: boolean;
+  gender?: 'men' | 'women' | 'unisex';
+  top_notes?: string[];
+  middle_notes?: string[];
+  base_notes?: string[];
+  category?: string;
 }
 
 export interface FragranceListParams {
@@ -691,6 +745,16 @@ export interface FragranceListParams {
   type?: string;
   status?: string;
   search?: string;
+  is_active?: boolean;
+  is_bestseller?: boolean;
+  gender?: string;
+}
+
+export interface FragrancePublicParams {
+  type?: 'perfume' | 'attar';
+  gender?: 'men' | 'women' | 'unisex';
+  category?: string;
+  is_bestseller?: boolean;
 }
 
 export interface Ingredient {

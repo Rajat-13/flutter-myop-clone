@@ -3,7 +3,10 @@ RIMAE Views
 """
 from .auth_views import RegisterView, LoginView, SendOTPView, VerifyOTPView, LogoutView, ProfileView
 from .product_views import ProductViewSet, BestsellersView, ProductSearchView
-from .fragrance_views import FragranceViewSet, FragranceImageUploadView, FragranceImageDeleteView
+from .fragrance_views import (
+    FragranceViewSet, FragranceImageUploadView, FragranceImageDeleteView,
+    PublicFragrancesView, FragranceBestsellersView
+)
 from .ingredient_views import IngredientViewSet
 from .order_views import OrderViewSet, AdminOrderViewSet
 from .address_views import AddressViewSet

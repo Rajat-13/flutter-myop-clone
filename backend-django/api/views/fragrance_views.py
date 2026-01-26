@@ -1,10 +1,10 @@
 """
-Fragrance Views (Admin)
+Fragrance Views (Admin + Public)
 """
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -22,9 +22,9 @@ class FragranceViewSet(viewsets.ModelViewSet):
     DELETE /fragrances/<id>/      - Delete fragrance
     """
     queryset = Fragrance.objects.all()
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]  # Allow public access for storefront
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['type', 'status', 'is_active', 'concentration']
+    filterset_fields = ['type', 'status', 'is_active', 'is_bestseller', 'concentration', 'gender', 'category']
     search_fields = ['name', 'sku', 'description']
     ordering_fields = ['price', 'created_at', 'stock_quantity', 'name']
     ordering = ['-created_at']
@@ -33,6 +33,48 @@ class FragranceViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return FragranceListSerializer
         return FragranceSerializer
+
+
+class PublicFragrancesView(APIView):
+    """GET /fragrances/public/ - Get active fragrances for storefront"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        product_type = request.query_params.get('type', None)
+        gender = request.query_params.get('gender', None)
+        category = request.query_params.get('category', None)
+        is_bestseller = request.query_params.get('is_bestseller', None)
+        
+        queryset = Fragrance.objects.filter(is_active=True, status='active')
+        
+        if product_type:
+            queryset = queryset.filter(type=product_type)
+        if gender:
+            queryset = queryset.filter(gender=gender)
+        if category:
+            queryset = queryset.filter(category=category)
+        if is_bestseller and is_bestseller.lower() == 'true':
+            queryset = queryset.filter(is_bestseller=True)
+        
+        queryset = queryset[:50]  # Limit
+        serializer = FragranceListSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class FragranceBestsellersView(APIView):
+    """GET /fragrances/bestsellers/ - Get bestseller fragrances"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        product_type = request.query_params.get('type', None)
+        queryset = Fragrance.objects.filter(is_active=True, is_bestseller=True)
+        
+        if product_type:
+            queryset = queryset.filter(type=product_type)
+        
+        queryset = queryset[:12]  # Limit to 12
+        serializer = FragranceListSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class FragranceImageUploadView(APIView):
