@@ -1,10 +1,22 @@
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedHeader from "./AnimatedHeader";
 import ScrollReveal from "./ScrollReveal";
+import { fragrancesAPI, Fragrance } from "@/lib/api";
 
-const perfumeProducts = [
+interface BestsellerProduct {
+  id: number;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image: string;
+  tag?: string;
+  slug: string;
+}
+
+// Fallback static products in case API fails
+const fallbackPerfumeProducts: BestsellerProduct[] = [
   {
     id: 1,
     name: "Purple Mystique",
@@ -12,12 +24,14 @@ const perfumeProducts = [
     originalPrice: 799,
     image: "https://images.unsplash.com/photo-1594035900144-17fc72a68908?w=600&auto=format&fit=crop&q=80",
     tag: "Bestseller",
+    slug: "purple-mystique",
   },
   {
     id: 2,
     name: "Ocean Breeze",
     price: 599,
     image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&auto=format&fit=crop&q=80",
+    slug: "ocean-breeze",
   },
   {
     id: 3,
@@ -26,28 +40,11 @@ const perfumeProducts = [
     originalPrice: 899,
     image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&auto=format&fit=crop&q=80",
     tag: "Sale",
-  },
-  {
-    id: 4,
-    name: "Fresh Citrus",
-    price: 449,
-    image: "https://images.unsplash.com/photo-1595535873420-a599195b3f4a?w=600&auto=format&fit=crop&q=80",
-  },
-  {
-    id: 5,
-    name: "Woody Essence",
-    price: 699,
-    image: "https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=600&auto=format&fit=crop&q=80",
-  },
-  {
-    id: 6,
-    name: "Floral Dreams",
-    price: 549,
-    image: "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&auto=format&fit=crop&q=80",
+    slug: "midnight-rose",
   },
 ];
 
-const attarProducts = [
+const fallbackAttarProducts: BestsellerProduct[] = [
   {
     id: 101,
     name: "Royal Oudh Attar",
@@ -55,12 +52,14 @@ const attarProducts = [
     originalPrice: 999,
     image: "https://images.unsplash.com/photo-1590736969955-71cc94901144?w=600&auto=format&fit=crop&q=80",
     tag: "Premium",
+    slug: "royal-oudh-attar",
   },
   {
     id: 102,
     name: "Sandal Pure",
     price: 649,
     image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&auto=format&fit=crop&q=80",
+    slug: "sandal-pure",
   },
   {
     id: 103,
@@ -68,41 +67,72 @@ const attarProducts = [
     price: 549,
     image: "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&auto=format&fit=crop&q=80",
     tag: "Bestseller",
-  },
-  {
-    id: 104,
-    name: "Musk White",
-    price: 499,
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&auto=format&fit=crop&q=80",
-  },
-  {
-    id: 105,
-    name: "Amber Gold",
-    price: 699,
-    originalPrice: 899,
-    image: "https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?w=600&auto=format&fit=crop&q=80",
-    tag: "Sale",
-  },
-  {
-    id: 106,
-    name: "Jasmine Night",
-    price: 599,
-    image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&auto=format&fit=crop&q=80",
+    slug: "rose-absolute",
   },
 ];
 
 const BestsellersSection = () => {
   const [activeTab, setActiveTab] = useState<"perfume" | "attar">("perfume");
   const [activeIndex, setActiveIndex] = useState(2);
+  const [perfumeProducts, setPerfumeProducts] = useState<BestsellerProduct[]>(fallbackPerfumeProducts);
+  const [attarProducts, setAttarProducts] = useState<BestsellerProduct[]>(fallbackAttarProducts);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Fetch bestsellers from API
+  useEffect(() => {
+    const fetchBestsellers = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch perfume bestsellers
+        const perfumeData = await fragrancesAPI.bestsellers("perfume");
+        if (perfumeData && perfumeData.length > 0) {
+          const mappedPerfumes: BestsellerProduct[] = perfumeData.map((p: Fragrance) => ({
+            id: p.id,
+            name: p.name,
+            price: p.final_price || p.price,
+            originalPrice: p.discount > 0 ? p.price : undefined,
+            image: p.cover_image || p.images?.[0]?.image || "https://images.unsplash.com/photo-1594035900144-17fc72a68908?w=600",
+            tag: p.is_bestseller ? "Bestseller" : p.discount > 0 ? "Sale" : undefined,
+            slug: p.sku?.toLowerCase() || `fragrance-${p.id}`,
+          }));
+          setPerfumeProducts(mappedPerfumes.length >= 3 ? mappedPerfumes : [...mappedPerfumes, ...fallbackPerfumeProducts.slice(mappedPerfumes.length)]);
+        }
+
+        // Fetch attar bestsellers
+        const attarData = await fragrancesAPI.bestsellers("attar");
+        if (attarData && attarData.length > 0) {
+          const mappedAttars: BestsellerProduct[] = attarData.map((p: Fragrance) => ({
+            id: p.id,
+            name: p.name,
+            price: p.final_price || p.price,
+            originalPrice: p.discount > 0 ? p.price : undefined,
+            image: p.cover_image || p.images?.[0]?.image || "https://images.unsplash.com/photo-1590736969955-71cc94901144?w=600",
+            tag: p.is_bestseller ? "Bestseller" : p.discount > 0 ? "Sale" : undefined,
+            slug: p.sku?.toLowerCase() || `fragrance-${p.id}`,
+          }));
+          setAttarProducts(mappedAttars.length >= 3 ? mappedAttars : [...mappedAttars, ...fallbackAttarProducts.slice(mappedAttars.length)]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch bestsellers:", error);
+        // Keep fallback products
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBestsellers();
+  }, []);
 
   const products = activeTab === "perfume" ? perfumeProducts : attarProducts;
 
   // Reset to center card when tab changes
   useEffect(() => {
-    setActiveIndex(2);
-  }, [activeTab]);
+    const centerIndex = Math.min(2, Math.floor(products.length / 2));
+    setActiveIndex(centerIndex);
+  }, [activeTab, products.length]);
 
   const scroll = (direction: "left" | "right") => {
     const newIndex = direction === "left"
@@ -148,14 +178,16 @@ const BestsellersSection = () => {
             <div className="hidden lg:flex gap-2">
               <button
                 onClick={() => scroll("left")}
-                className="w-12 h-12 flex items-center justify-center border border-foreground rounded-full hover:bg-foreground hover:text-background transition-all duration-300"
+                disabled={activeIndex === 0}
+                className="w-12 h-12 flex items-center justify-center border border-foreground rounded-full hover:bg-foreground hover:text-background transition-all duration-300 disabled:opacity-30"
                 aria-label="Previous"
               >
                 <ChevronLeft size={20} />
               </button>
               <button
                 onClick={() => scroll("right")}
-                className="w-12 h-12 flex items-center justify-center border border-foreground rounded-full hover:bg-foreground hover:text-background transition-all duration-300"
+                disabled={activeIndex === products.length - 1}
+                className="w-12 h-12 flex items-center justify-center border border-foreground rounded-full hover:bg-foreground hover:text-background transition-all duration-300 disabled:opacity-30"
                 aria-label="Next"
               >
                 <ChevronRight size={20} />
@@ -221,103 +253,111 @@ const BestsellersSection = () => {
           </div>
         )}
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
+
         {/* 3D Stacked Carousel */}
-        <ScrollReveal delay={0.2}>
-          <div className="relative py-8">
-            <div
-              className="flex items-center justify-center min-h-[450px]"
-              style={{ perspective: "1200px" }}
-            >
-              <div className="relative flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
-                {products.map((product, index) => {
-                  const slug = product.name.toLowerCase().replace(/\s+/g, '-');
-                  return (
-                    <div
-                      key={product.id}
-                      onClick={() => {
-                        if (index === activeIndex) {
-                          navigate(`/products/${slug}`);
-                        } else {
-                          setActiveIndex(index);
-                        }
-                      }}
-                      className={`absolute transition-all duration-500 ease-out cursor-pointer ${
-                        index === activeIndex ? "z-20" : ""
-                      }`}
-                      style={getCardStyle(index)}
-                    >
-                      <div className={`w-64 md:w-72 bg-card rounded-2xl overflow-hidden shadow-xl transition-all duration-300 ${
-                        index === activeIndex ? "ring-2 ring-primary/30 shadow-2xl" : "hover:shadow-lg"
-                      }`}>
-                        <div className="aspect-[3/4] overflow-hidden relative">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500"
-                          />
-                          {product.tag && (
-                            <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-medium rounded-full ${
-                              product.tag === "Bestseller" ? "bg-primary text-primary-foreground" :
-                              product.tag === "Sale" ? "bg-destructive text-destructive-foreground" :
-                              "bg-secondary text-secondary-foreground"
-                            }`}>
-                              {product.tag}
-                            </span>
-                          )}
-                        </div>
-                        <div className="p-4 bg-gradient-to-t from-background to-card">
-                          <h3 className="font-semibold text-foreground text-center">{product.name}</h3>
-                          <div className="flex items-center justify-center gap-2 mt-2">
-                            <span className="text-lg font-bold text-primary">₹{product.price}</span>
-                            {product.originalPrice && (
-                              <span className="text-sm text-muted-foreground line-through">₹{product.originalPrice}</span>
+        {!isLoading && (
+          <ScrollReveal delay={0.2}>
+            <div className="relative py-8">
+              <div
+                className="flex items-center justify-center min-h-[450px]"
+                style={{ perspective: "1200px" }}
+              >
+                <div className="relative flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
+                  {products.map((product, index) => {
+                    return (
+                      <div
+                        key={product.id}
+                        onClick={() => {
+                          if (index === activeIndex) {
+                            navigate(`/products/${product.slug}`);
+                          } else {
+                            setActiveIndex(index);
+                          }
+                        }}
+                        className={`absolute transition-all duration-500 ease-out cursor-pointer ${
+                          index === activeIndex ? "z-20" : ""
+                        }`}
+                        style={getCardStyle(index)}
+                      >
+                        <div className={`w-64 md:w-72 bg-card rounded-2xl overflow-hidden shadow-xl transition-all duration-300 ${
+                          index === activeIndex ? "ring-2 ring-primary/30 shadow-2xl" : "hover:shadow-lg"
+                        }`}>
+                          <div className="aspect-[3/4] overflow-hidden relative">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover transition-transform duration-500"
+                            />
+                            {product.tag && (
+                              <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-medium rounded-full ${
+                                product.tag === "Bestseller" ? "bg-primary text-primary-foreground" :
+                                product.tag === "Sale" ? "bg-destructive text-destructive-foreground" :
+                                "bg-secondary text-secondary-foreground"
+                              }`}>
+                                {product.tag}
+                              </span>
                             )}
+                          </div>
+                          <div className="p-4 bg-gradient-to-t from-background to-card">
+                            <h3 className="font-semibold text-foreground text-center">{product.name}</h3>
+                            <div className="flex items-center justify-center gap-2 mt-2">
+                              <span className="text-lg font-bold text-primary">₹{product.price}</span>
+                              {product.originalPrice && (
+                                <span className="text-sm text-muted-foreground line-through">₹{product.originalPrice}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mobile Navigation Arrows */}
+              <div className="flex lg:hidden justify-center gap-4 mt-4">
+                <button
+                  onClick={() => scroll("left")}
+                  disabled={activeIndex === 0}
+                  className="w-10 h-10 flex items-center justify-center border border-foreground/30 rounded-full hover:bg-foreground hover:text-background transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => scroll("right")}
+                  disabled={activeIndex === products.length - 1}
+                  className="w-10 h-10 flex items-center justify-center border border-foreground/30 rounded-full hover:bg-foreground hover:text-background transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Next"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+
+              {/* Carousel Dots */}
+              <div className="flex justify-center gap-2 mt-6">
+                {products.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveIndex(index)}
+                    className={`rounded-full transition-all duration-300 ${
+                      index === activeIndex
+                        ? "w-8 h-2 bg-primary"
+                        : "w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
               </div>
             </div>
-
-            {/* Mobile Navigation Arrows */}
-            <div className="flex lg:hidden justify-center gap-4 mt-4">
-              <button
-                onClick={() => scroll("left")}
-                disabled={activeIndex === 0}
-                className="w-10 h-10 flex items-center justify-center border border-foreground/30 rounded-full hover:bg-foreground hover:text-background transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Previous"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={() => scroll("right")}
-                disabled={activeIndex === products.length - 1}
-                className="w-10 h-10 flex items-center justify-center border border-foreground/30 rounded-full hover:bg-foreground hover:text-background transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Next"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-
-            {/* Carousel Dots */}
-            <div className="flex justify-center gap-2 mt-6">
-              {products.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setActiveIndex(index)}
-                  className={`rounded-full transition-all duration-300 ${
-                    index === activeIndex
-                      ? "w-8 h-2 bg-primary"
-                      : "w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
       </div>
     </section>
   );

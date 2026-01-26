@@ -49,10 +49,19 @@ class Fragrance(models.Model):
         ('discontinued', 'Discontinued'),
     ]
 
+    GENDER_CHOICES = [
+        ('men', 'Men'),
+        ('women', 'Women'),
+        ('unisex', 'Unisex'),
+    ]
+
     name = models.CharField(max_length=200)
     sku = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(unique=True, blank=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='perfume')
     concentration = models.CharField(max_length=20, choices=CONCENTRATION_CHOICES, blank=True)
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='unisex')
+    category = models.CharField(max_length=50, blank=True)
     
     description = models.TextField(blank=True)
     short_description = models.CharField(max_length=500, blank=True)
@@ -66,6 +75,12 @@ class Fragrance(models.Model):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     is_active = models.BooleanField(default=True)
+    is_bestseller = models.BooleanField(default=False)
+    
+    # Fragrance notes stored as JSON arrays
+    top_notes = models.JSONField(default=list, blank=True)
+    middle_notes = models.JSONField(default=list, blank=True)
+    base_notes = models.JSONField(default=list, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -73,6 +88,12 @@ class Fragrance(models.Model):
     class Meta:
         db_table = 'fragrances'
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.sku})"
