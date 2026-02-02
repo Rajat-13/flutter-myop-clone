@@ -43,6 +43,7 @@ import LandingSetup from "./pages/admin/LandingSetup";
 import ContentPages from "./pages/admin/ContentPages";
 import SearchSeoAdmin from "./pages/admin/SearchSeoAdmin";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutDialog from "./components/CheckoutDialog";
 import WishlistDrawer from "./components/WishlistDrawer";
@@ -79,6 +80,7 @@ const AnimatedRoutes = () => {
         <Route path="/about-us" element={<PageTransition><AboutUs /></PageTransition>} />
         <Route path="/faq" element={<PageTransition><FAQ /></PageTransition>} />
         <Route path="/privacy-policy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+        <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
         
         {/* Admin Routes with Layout */}
         <Route path="/admin" element={<AdminLayout />}>
