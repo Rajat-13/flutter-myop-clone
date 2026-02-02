@@ -27,6 +27,9 @@ const products: Record<string, {
   occasion: string;
   concentration: { sillage: number; projection: number; longevity: number };
   viewersCount: number;
+  whereToWear: string[];
+  vibes: string[];
+  category: string;
 }> = {
   "sandal-veer": {
     name: "Sandal Veer",
@@ -52,7 +55,10 @@ const products: Record<string, {
     gender: "for-him",
     occasion: "All Day",
     concentration: { sillage: 85, projection: 75, longevity: 90 },
-    viewersCount: 15
+    viewersCount: 15,
+    whereToWear: ["Events", "Parties", "Office"],
+    vibes: ["Regal", "Luxurious", "Powerful"],
+    category: "Woody"
   },
   "flora-bliss": {
     name: "Flora Bliss",
@@ -75,7 +81,10 @@ const products: Record<string, {
     gender: "for-her",
     occasion: "Evening",
     concentration: { sillage: 70, projection: 80, longevity: 85 },
-    viewersCount: 12
+    viewersCount: 12,
+    whereToWear: ["Date Night", "Weddings", "Celebrations"],
+    vibes: ["Romantic", "Elegant", "Feminine"],
+    category: "Floral"
   }
 };
 
@@ -443,6 +452,41 @@ const ProductDetail = () => {
                   alt="8 Hrs Lasting, MSDS Certified, Value for Money, 98.5% Similar Fragrance, Made in India" 
                   className="w-full max-w-md"
                 />
+              </div>
+
+              {/* Where to Wear It Section */}
+              <div className="py-4 border-t border-border">
+                <h3 className="text-sm font-semibold text-charcoal uppercase tracking-wider mb-3">
+                  Where to Wear It?
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {product.whereToWear.map((occasion, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full"
+                    >
+                      <span className="text-lg">
+                        {occasion === "Events" && "🎭"}
+                        {occasion === "Parties" && "🎉"}
+                        {occasion === "Office" && "💼"}
+                        {occasion === "Date Night" && "💕"}
+                        {occasion === "Weddings" && "💒"}
+                        {occasion === "Celebrations" && "🥂"}
+                      </span>
+                      <span className="text-sm font-medium text-charcoal">{occasion}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vibes Section */}
+              <div className="py-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-charcoal uppercase tracking-wider">Vibes:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {product.vibes.join(", ")}
+                  </span>
+                </div>
               </div>
 
               {/* Share Section */}

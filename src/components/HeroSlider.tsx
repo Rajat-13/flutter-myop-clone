@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import heroSlide1 from "@/assets/hero-slide-1.png";
 import heroSlide2 from "@/assets/hero-slide-2.png";
 import heroSlide3 from "@/assets/hero-slide-3.png";
@@ -39,48 +40,53 @@ const HeroSlider = () => {
   }, []);
 
   const goToSlide = (index: number) => setCurrentSlide(index);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
 
   return (
     <section className="relative overflow-hidden">
       <div className="relative h-[500px] md:h-[650px]">
-        {slides.map((slide, index) => (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-              index === currentSlide 
-                ? "opacity-100 translate-x-0 z-10" 
-                : "opacity-0 -translate-x-full z-0"
-            }`}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ 
+              duration: 0.8, 
+              ease: [0.25, 0.46, 0.45, 0.94]
+            }}
+            className="absolute inset-0"
           >
             <Link 
-              to={slide.link}
+              to={slides[currentSlide].link}
               className="block w-full h-full"
             >
               <img
-                src={slide.image}
-                alt={`Slide ${slide.id}`}
+                src={slides[currentSlide].image}
+                alt={`Slide ${slides[currentSlide].id}`}
                 className="w-full h-full object-cover"
               />
             </Link>
-          </div>
-        ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Dots */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+      {/* Dots - Elegant minimal style */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
         {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`h-2 md:h-2.5 rounded-full transition-all duration-500 ${
-              index === currentSlide
-                ? "bg-white w-8 md:w-10"
-                : "bg-white/50 w-4 md:w-6 hover:bg-white/70"
-            }`}
+            className="group relative p-1"
             aria-label={`Go to slide ${index + 1}`}
-          />
+          >
+            <span 
+              className={`block h-0.5 transition-all duration-500 ease-out ${
+                index === currentSlide
+                  ? "w-8 bg-white"
+                  : "w-4 bg-white/40 group-hover:bg-white/70"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </section>
